@@ -1,4 +1,4 @@
-# VickTV
+# VicTV
 
 Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus, de gros boutons et un petit mot d’amour avant la soirée.
 
@@ -6,9 +6,13 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.3.0
+## Version 0.4.0
 
-La version **0.3.0 (code 4)** ajoute le guide TV multichaîne et conserve la clé de signature initiale. Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jour** lorsque la version est disponible dans Releases.
+La version **0.4.0 (code 5)** habille l’app en rose bonbon et prune, avec un nouveau logo cartoon **VicTV**, une icône et une bannière pour le lanceur TV. Elle ajoute la section **Adultes 18+** et conserve la clé de signature initiale. Le dépôt, le fichier APK et le paquet Android conservent leurs noms techniques `VickTV` / `ca.vicktv` pour les mises à jour.
+
+Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jour** lorsque la version est disponible dans Releases.
+
+**Adultes 18+**, à l’accueil, donne accès aux chaînes, films et séries correspondants. Le guide propose aussi un filtre **Adultes**. Le regroupement reconnaît le marquage `is_adult` du fournisseur et les catégories/noms explicites (Adultes, XXX, 18+, etc.). Il dépend des données Xtream et ne constitue pas un contrôle parental : les contenus restent aussi accessibles dans Toutes, les catégories originales et les favoris. Les autres filtres linguistiques gardent leur comportement habituel.
 
 - APK de mise à jour conservé dans le stockage privé, hors cache, pour résister aux purges du système en cas de manque d’espace.
 - Lecture plein écran lorsque les commandes sont masquées; Retour du lecteur vers la liste, la recherche et la sélection précédentes, sans recharger le catalogue.
@@ -17,7 +21,7 @@ La version **0.3.0 (code 4)** ajoute le guide TV multichaîne et conserve la cl�
 - **Guide TV** dès l’accueil et dans le lecteur : cinq chaînes visibles, grille de deux heures, émission en cours, descriptions, Français, Favoris, catégories et recherche par nom ou numéro. Jusqu’à douze heures à venir selon les données Xtream. Les heures affichées suivent le fuseau du Fire Stick.
 - Préférences **Automatique / Stéréo / Cinéma 5.1**. L’option **Éviter l’audiodescription** est activée par défaut : elle écarte les pistes identifiées comme descriptives si une piste normale existe, y compris si une piste descriptive avait été mémorisée. Le choix manuel reste possible; **Choix automatique** efface la préférence du contenu. Une narration non identifiée ou intégrée au seul flux ne peut pas être retirée.
 
-![Guide TV — horaire fictif du mode démo](docs/images/guide-tv-demo.png)
+![Guide TV rose — horaire fictif du mode démo](docs/images/guide-tv-rose.png)
 
 ## Le guide, en trois gestes
 
@@ -44,7 +48,7 @@ Sans compte, le guide montre un **horaire de démonstration fictif**, clairement
 ## Navigation
 
 - Flèches : naviguer; OK : ouvrir ou regarder; Retour : revenir.
-- Accueil : Guide TV, Français, Sports, Films, Séries, Favoris et Toutes les chaînes.
+- Accueil : Guide TV, Français, Sports, Films, Séries, Favoris, Toutes les chaînes et Adultes 18+.
 - Les regroupements Français/Sports utilisent les noms des catégories et chaînes du fournisseur; ils peuvent être imparfaits. Le bouton **Catégories** donne accès au catalogue original.
 - Appui long sur OK dans une liste : ajouter/retirer un favori.
 - Pendant la lecture : **Audio / Son** ou touche Menu de la télécommande pour choisir une piste.

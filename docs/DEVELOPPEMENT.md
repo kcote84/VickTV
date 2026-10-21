@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.3.0**, `versionCode = 4`, guide multichaîne (section 15). Version précédente : **0.2.1**, `versionCode = 3`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour le guide actuel.
+Dernière mise à jour : **21 octobre 2026**. Version préparée : **0.4.0**, `versionCode = 5`, thème rose, identité VicTV et regroupement Adultes (section 16). Dernière version distribuée avant ce chantier : **0.3.0**, `versionCode = 4`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour le guide actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -355,3 +355,39 @@ La [PR nº 3](https://github.com/kcote84/VickTV/pull/3) est fusionnée dans `mai
 Le manifeste stable `releases/latest/download/update.json` et l’APK ont été téléchargés **sans authentification** après publication : version 0.3.0, code 4, 4 343 635 octets, empreinte et octets identiques au fichier local testé. Le fichier SHA256SUMS concorde et `apksigner verify` confirme de nouveau le certificat original sur l’APK téléchargé. Les copies extraites de signature sont supprimées; le ZIP privé original reste hors dépôt.
 
 Un dernier essai sur le candidat final vérifie la borne de navigation au lendemain, le retour à Maintenant et l’accès D-pad aux filtres depuis un guide Favoris vide. Le déploiement sur les deux Fire Stick n’a pas été effectué. Première action matérielle : Réglages → Vérifier les mises à jour sur une seule TV, puis vérifier Guide TV, favoris et données horaires Edge avant de mettre à jour la deuxième.
+
+
+## 16. VicTV rose — 0.4.0
+
+Demande : remplacer le vert par du rose bonbon, dessiner un logo VicTV humoristique inspiré de Viki, fournir une nouvelle capture du guide et regrouper les chaînes pornographiques Xtream dans une section dédiée.
+
+### Identité et palette
+
+`TvTheme.kt` centralise le fond prune `#19131F`, les panneaux `#302637`, l’accent rose bonbon `#FF91C1`, les textes secondaires et les états sélection/en cours. Accueil, listes, guide et contrôles de lecture partagent cette palette. L’accent Android et le fond de fenêtre sont harmonisés dans `styles.xml`; les valeurs du XML doivent rester synchronisées avec la palette Kotlin. Les textes blancs et le focus rose sur fond sombre sont conservés pour la lecture à distance.
+
+Le nom affiché devient **VicTV**. Le paquet `ca.vicktv`, le dépôt `kcote84/VickTV`, l’alias de signature, les préférences, l’autorité FileProvider et le nom de l’APK distribué restent identiques. Le changement de nom visible ne requiert aucune désinstallation ni nouvelle connexion.
+
+Les images sont créées avec l’outil intégré **imagegen**, puis copiées dans `app/src/main/res/drawable-nodpi/` : `victv_icon_art.png` (carré) et `victv_banner_art.png` (paysage). Elles représentent une télé rétro rose et une poitrine cartoon en bustier opaque, sans nudité, avec le mot VicTV. Les drawables `ic_vicktv.xml` et `tv_banner.xml` adaptent ces bitmaps aux dimensions demandées par le lanceur; le manifeste pointe sur ces ressources et porte le nom VicTV. Les prompts complets et leur relation de référence sont dans `docs/images/logo-prompts.txt`.
+
+Le format du logo de bannière TV et l’usage de `android:icon` / `android:banner` sont décrits dans la [documentation Android](https://developer.android.com/design/ui/tv/guides/system/tv-app-icon-guidelines). L’affichage exact du lanceur Fire OS peut dépendre de son cache et reste à vérifier sur les deux Fire Stick; ne pas présenter une capture Android comme une capture Fire OS.
+
+### Regroupement Adultes
+
+- Accueil : **Adultes 18+**, puis Chaînes en direct, Films ou Séries. Ce sont les API habituelles du compte Xtream, filtrées localement; aucun flux externe n’est ajouté.
+- Guide : filtre **Adultes** visible et accessible aussi par Menu → Choisir les chaînes affichées.
+- `Entry.adult` reprend `is_adult` numérique ou booléen du fournisseur. Il reste conservé dans les détails des favoris; les anciens favoris sans ce champ se lisent avec `false`.
+- `CatalogRules.isAdult` combine ce drapeau, les groupes Adult/Adults/Adulte/Adultes et des marqueurs explicites (XXX, Porno, 18+, Érotique et quelques libellés de chaînes). Les mots génériques adult/adulte dans un titre seul ne suffisent pas; Adult Swim est exclu de ce marqueur générique. Ce classement n’est pas une preuve de contenu et peut être imparfait si le fournisseur ne marque pas ses chaînes.
+- Choisir une catégorie dans le catalogue Adultes conserve le filtre Adultes. Recherche, favoris et filtres Français/Québec de la VOD restent combinables.
+- Le regroupement ne masque pas le catalogue Toutes ni les catégories d’origine et ne crée pas de PIN parental. Aucun contrôle parental n’a été demandé dans ce chantier. Le mode démo ne fournit ni chaîne adulte ni programme adulte.
+
+### Vérifications
+
+Les tests ajoutés vérifient le marquage fournisseur, les variantes de catégories, les marqueurs explicites, les faux positifs Adult Swim / Sex Education / titres ordinaires et le maintien des filtres linguistiques. Résultats du build final, captures et publication consignés ci-dessous après contrôle du paquet.
+
+
+Le build définitif `testDebugUnitTest lintDebug assembleRelease --no-daemon` réussit : **20 tests**, zéro échec, lint sans erreur (8 avertissements). `apksigner verify --verbose` confirme le certificat initial. `aapt dump badging` confirme **VicTV**, paquet `ca.vicktv`, **0.4.0 / code 5**, sans mode débogable. APK : **6 812 383 octets**, SHA-256 `c481da935e6604fcd14814ba17b07dade1b0f2bb0aca4ce2d167988cf11ed18a`. Les **23 morceaux** de distribution remplacent intégralement les 15 précédents; leur concaténation est comparée à l’APK signé, au manifeste et à SHA256SUMS.
+
+L’APK est installé par-dessus 0.3.0 sur émulateur Android API 35 au format 960 × 540 dp, sans désinstallation. Captures réelles inspectées : `docs/images/guide-tv-rose.png` (guide démo fictif) et `docs/images/home-victv-rose.png` (accueil). Les images de lancement sont incluses dans l’APK; l’intégration au lanceur Fire OS attend encore un essai matériel.
+
+
+Serveur Xtream synthétique local : seize chaînes, dont trois entrées classées Adultes par trois voies (drapeau `is_adult=1` sur un nom neutre, nom XXX, catégorie Adultes) et une chaîne Adult Swim non adulte. Les trois bonnes entrées apparaissent dans le direct, les films, les séries et le filtre du guide. Un changement de catégorie vers un groupe général conserve seulement l’entrée marquée adulte; le filtre Français reste combinable. Aucun compte Edge ni contenu pornographique réel n’a été utilisé dans les tests.
