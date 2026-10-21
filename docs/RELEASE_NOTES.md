@@ -1,7 +1,10 @@
-# VickTv 0.4.3
+# VickTv 0.5.0
 
-- Accueil simplifié : gros boutons avec icônes et libellés courts. Guide TV, Favoris et Direct en premier; Films, Séries, Français et Sports juste en dessous.
-- Guide TV agrandi : retrait de la barre de boutons du bas et de sa ligne de raccourcis.
-- Gauche/droite parcourt toujours l’horaire. Menu permet d’ajouter ou retirer un favori et de revenir à maintenant; « ? Aide » explique les commandes.
-- Adultes 18+ et Réglages restent accessibles à l’accueil. Réglages audio, diagnostic HTTP et mises à jour conservés.
+- Bordure de sécurité sur les écrans et les commandes : 5 % par défaut, ou 8 % dans Réglages → Bordure TV.
+- Guide TV : ★ Favoris est le premier onglet et la sélection à la première ouverture. Les retours conservent la place précédente.
+- Le raccourci Français devient Québec pour le direct : chaînes locales francophones, sans les chaînes de France reconnues. Direct conserve le catalogue complet.
+- Films et Séries : galeries de pochettes, recherche et favoris, directement en français, sans menus de filtres. Les contenus français de France, du Québec et doublés restent admissibles; VOSTFR est exclu.
+- Les commandes de lecture apparaissent par-dessus l’image plein écran, sans la réduire.
+- Le classement et les pochettes dépendent des métadonnées du fournisseur. Une affiche manquante garde une vignette et le titre; aucune vérification automatique des pistes de chaque film.
+- Réglages audio, diagnostic HTTP et mises à jour conservés. Aucun changement au flux de Zeste ni au problème de narration déjà intégré à une piste unique.
 - Même paquet et même clé de signature : mise à jour sur place, sans désinstallation.

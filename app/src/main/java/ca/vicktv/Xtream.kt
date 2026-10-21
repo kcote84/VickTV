@@ -12,6 +12,10 @@ object CatalogRules {
     fun normalize(s: String): String = Normalizer.normalize(s.lowercase(Locale.ROOT), Normalizer.Form.NFD).replace("\\p{M}+".toRegex(), "")
     private val adultCategory = Regex("(^|[^a-z0-9])adults?(?:e|es)?([^a-z0-9]|$)")
     private val adultMarker = Regex("(^|[^a-z0-9])(?:xxx|porn(?:o|os|ography|ographique|ographiques)?|erotic(?:a)?|erotiques?|18\\s*(?:\\+|plus)|playboy|penthouse|hustler|brazzers)(?=$|[^a-z0-9])")
+    private val quebecBrands = Regex("^(?:radio[ -]?canada|tele[ -]?quebec|ici[ -]?(?:tele(?:vision)?|rdi|artv|explora)|tva|noovo|rds|lcn|zeste|historia|evasion|series[ -]?plus|cinepop|addik(?:[ -]?tv)?|casa|canal[ -]?(?:d|vie|savoir)|savoir[ -]?media|prise[ -]?2|unis[ -]?tv|ami[ -]?tele|artv|assemblee[ -]?nationale|cpac|elle[ -]?fictions|frissons[ -]?tv|investigation|matv|max|meteo[ -]?media|natyf[ -]?tv|planete\\s*\\+?\\s*canada|saisons|stingray[ -]?(?:franco|palmares)|super[ -]?ecran|telemag|teletoon(?![ -]?(?:plus|\\+))|temoin|tfo|tv5(?![ -]?monde)|vie|z[ -]?tele|a[ -]?la[ -]?carte)\\b")
+    private val frenchVodTag = Regex("\\b(fr|fra|fre|vf|vff|vfq|truefrench|francais)\\b")
+    private val subtitled = Regex("\\bvost(?:fr|f)?\\b")
+    private val foreignVodTag = Regex("(?:^|\\[|\\(|\\|)\\s*(en|eng|english|vo)\\s*(?:\\]|\\)|\\||$)")
     fun isAdult(category: String, title: String, marked: Boolean = false): Boolean {
         if (marked) return true
         val group = normalize(category).replace(Regex("\\badult\\s+swim\\b"), "")
@@ -21,17 +25,35 @@ object CatalogRules {
         val text = normalize("$category $title")
         return when (section) {
             "Adultes" -> isAdult(category, title, markedAdult)
+            "Québec (direct)" -> isQuebecLive(category, title)
             "Sports" -> Regex("sport|rds|tsn|espn|bein|dazn|nhl|nfl|nba|mlb|hockey|football").containsMatchIn(text)
             "Français" -> Regex("(^|[^a-z])(fr|fra|fre|vf|vff|vfq|vostfr|qc|quebec|france|francais|french)([^a-z]|$)|radio.?canada|tele.?quebec|tva|noovo|rds").containsMatchIn(text)
             "Québec" -> Regex("(^|[^a-z])(qc|quebec|quebecois|quebecoise|quebecoises|vfq)([^a-z]|$)|radio.?canada|tele.?quebec|tva|noovo").containsMatchIn(text)
             else -> true
         }
     }
+    fun isQuebecLive(category: String, title: String): Boolean {
+        val group = normalize(category); val name = normalize(title)
+        if (Regex("\\b(france|belgique|suisse|afrique)\\b").containsMatchIn(group)) return false
+        if (Regex("\\b(france\\s*(2|3|4|5|24)|tf1|tfx|tmc|m6|w9|6ter|bfm(?:tv)?|lci|arte)\\b").containsMatchIn(name)) return false
+        val quebec = Regex("\\b(qc|quebec|quebecois|quebecoise|quebecoises)\\b")
+        if (quebec.containsMatchIn(group)) return true
+        if (Regex("\\bcanad(?:a|ian)\\b").containsMatchIn(group) && matches("Français", group, "")) return true
+        return quebecBrands.containsMatchIn(name)
+    }
+    fun isFrenchVod(category: String, title: String): Boolean {
+        val name = normalize(title); val group = normalize(category)
+        if (subtitled.containsMatchIn("$name $group")) return false
+        val explicitFrench = frenchVodTag.containsMatchIn(name)
+        val foreignTitle = foreignVodTag.containsMatchIn(name)
+        if(!explicitFrench && foreignTitle) return false
+        return explicitFrench || matches("Français", category, "") || Regex("\\b(quebecois|quebecoise|quebecoises|truefrench)\\b").containsMatchIn(group)
+    }
     fun safeExtension(s: String, fallback: String) = s.takeIf { it.matches(Regex("[A-Za-z0-9]{1,8}")) } ?: fallback
 }
 
 data class Category(val id: String, val name: String)
-data class Entry(val id: String, val name: String, val category: String, val kind: String, val extension: String = "ts", val number: Int = 0, val adult: Boolean = false) {
+data class Entry(val id: String, val name: String, val category: String, val kind: String, val extension: String = "ts", val number: Int = 0, val adult: Boolean = false, val poster: String = "") {
     val key get() = "$kind:$id"
 }
 class Xtream(private val account: Account) {
@@ -54,17 +76,14 @@ class Xtream(private val account: Account) {
     fun entries(kind: String, category: String? = null): List<Entry> {
         val action = if (kind == "series") "get_series" else "get_${kind}_streams"
         val a = JSONArray(api(action, category?.let { "category_id" to it }))
-        return (0 until a.length()).map { a.getJSONObject(it) }.map {
-            Entry(it.optString(if (kind == "series") "series_id" else "stream_id"), it.optString("name", "Sans titre"),
-                it.optString("category_id"), kind, CatalogRules.safeExtension(it.optString("container_extension"), if (kind == "live") "ts" else "mp4"), it.optInt("num"), it.optInt("is_adult") == 1 || it.optBoolean("is_adult"))
-        }.filter { it.id.matches(Regex("\\d+")) }
+        return (0 until a.length()).map { CatalogParser.entry(a.getJSONObject(it), kind, root) }.filter { it.id.matches(Regex("\\d+")) }
     }
     fun episodes(series: Entry): List<Entry> {
         val all = JSONObject(api("get_series_info", "series_id" to series.id)).optJSONObject("episodes") ?: return emptyList()
         return all.keys().asSequence().toList().sortedBy { it.toIntOrNull() ?: 0 }.flatMap { season ->
             val a = all.optJSONArray(season) ?: JSONArray()
             (0 until a.length()).map { a.getJSONObject(it) }.sortedBy { it.optInt("episode_num") }.map {
-                Entry(it.optString("id"), "S$season · ${it.optString("title", "Épisode ${it.optInt("episode_num")}")}", series.category, "episode", CatalogRules.safeExtension(it.optString("container_extension"), "mp4"))
+                Entry(it.optString("id"), "S$season · ${it.optString("title", "Épisode ${it.optInt("episode_num")}")}", series.category, "episode", CatalogRules.safeExtension(it.optString("container_extension"), "mp4"), poster = ArtworkRules.url(it.optJSONObject("info")?.optString("movie_image").orEmpty(), root).ifBlank { series.poster })
             }
         }.filter { it.id.matches(Regex("\\d+")) }
     }

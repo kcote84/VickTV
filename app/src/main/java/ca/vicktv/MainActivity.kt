@@ -30,6 +30,7 @@ class MainActivity : Activity() {
     private lateinit var store: Store
     private lateinit var root: LinearLayout
     private val work = Executors.newSingleThreadExecutor()
+    private val posters = PosterLoader()
     private val main = Handler(Looper.getMainLooper())
     private var requestId = 0
     private var screen = "home"
@@ -50,16 +51,16 @@ class MainActivity : Activity() {
     private var browseCategory: String? = null
     private var categories = listOf<Category>()
     private var items = listOf<Entry>()
-    private var list: ListView? = null
+    private var list: AbsListView? = null
     private var search: EditText? = null
-    private var languageFilter = "Tous"
+    private var gallery = false
     private var listTitle = ""
     private var listSection = ""
     private var listFilters = false
     private var shownEntries = emptyList<Entry>()
     private var lastListSelection = 0
     private data class ListState(val title: String, val section: String, val filters: Boolean, val screen: String,
-        val categories: List<Category>, val entries: List<Entry>, val query: String, val selected: Int, val language: String)
+        val categories: List<Category>, val entries: List<Entry>, val query: String, val selected: Int, val gallery: Boolean)
     private var playerOrigin: ListState? = null
     private var seriesOrigin: ListState? = null
     private var guideScreen: TvGuideScreen? = null
@@ -93,7 +94,7 @@ class MainActivity : Activity() {
         releasePlayer()
         super.onStop()
     }
-    override fun onDestroy() { requestId++; guideScreen?.close(); releasePlayer(); work.shutdownNow(); main.removeCallbacksAndMessages(null); super.onDestroy() }
+    override fun onDestroy() { requestId++; guideScreen?.close(); releasePlayer(); posters.close(); work.shutdownNow(); main.removeCallbacksAndMessages(null); super.onDestroy() }
     @Deprecated("TV back navigation")
     override fun onBackPressed() {
         when (screen) {
@@ -127,8 +128,8 @@ class MainActivity : Activity() {
     }
     private fun page(name: String, subtitle: String): LinearLayout {
         if (name != "guide") guideScreen?.pause()
-        requestId++; busy = false; screen = name; list = null; search = null
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(34), dp(18), dp(34), dp(14)); setBackgroundColor(bg) }
+        requestId++; busy = false; screen = name; list = null; search = null; gallery = false; posters.cancelPending()
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; TvSafeArea.apply(this, this@MainActivity, store.prefs.getBoolean("wide_safe_area", false)); setBackgroundColor(bg) }
         setContentView(root)
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         header.addView(label("VickTv", 28f, accent).apply { setTypeface(null, Typeface.BOLD) }, LinearLayout.LayoutParams(0, dp(48), 1f))
@@ -154,9 +155,9 @@ class MainActivity : Activity() {
         root.addView(primary, LinearLayout.LayoutParams(-1, 0, 1.1f).apply { topMargin = dp(12); bottomMargin = dp(12) })
         val catalogue = LinearLayout(this).apply { isBaselineAligned = false }
         listOf("Films" to R.drawable.home_films, "Séries" to R.drawable.home_series,
-            "Français" to R.drawable.home_french, "Sports" to R.drawable.home_sports).forEach { (title, icon) ->
+            "Québec" to R.drawable.home_french, "Sports" to R.drawable.home_sports).forEach { (title, icon) ->
             addTile(catalogue, homeTile(title, icon) {
-                if(store.account() == null) demo(title) else browse(title, when(title) { "Films" -> "vod"; "Séries" -> "series"; else -> "live" }, title)
+                if(store.account() == null) demo(title) else browse(title, when(title) { "Films" -> "vod"; "Séries" -> "series"; else -> "live" }, if(title == "Québec") "Québec (direct)" else title)
             })
         }
         root.addView(catalogue, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -230,6 +231,7 @@ class MainActivity : Activity() {
         val scroll = ScrollView(this); val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }; scroll.addView(body); root.addView(scroll)
         addButton(body, if (store.account() == null) "Connecter mon compte Xtream" else "Modifier mon compte Xtream") { login() }
         addButton(body, "Mots d’amour : ${if(store.prefs.getBoolean("love", true)) "activés" else "désactivés"}") { store.prefs.edit().putBoolean("love", !store.prefs.getBoolean("love", true)).apply(); settings() }
+        addButton(body, "Bordure TV : ${if(store.prefs.getBoolean("wide_safe_area", false)) "grande (8 %)" else "normale (5 %)"}") { store.prefs.edit().putBoolean("wide_safe_area", !store.prefs.getBoolean("wide_safe_area", false)).apply(); settings() }
         addButton(body, "Format du direct : ${if(store.prefs.getBoolean("hls", false)) "HLS" else "MPEG-TS"}") { store.prefs.edit().putBoolean("hls", !store.prefs.getBoolean("hls", false)).apply(); settings() }
         addButton(body, "Audio : ${audioModeLabel()}") {
             AlertDialog.Builder(this).setTitle("Préférence audio").setItems(arrayOf("Automatique", "Stéréo", "Cinéma / 5.1")) { _, which ->
@@ -280,38 +282,38 @@ class MainActivity : Activity() {
     private fun favourites() {
         page("browse", "Tes favoris, réunis au même endroit.")
         items = store.favouriteEntries(); categories = emptyList()
-        languageFilter = "Tous"
         buildList("Favoris", "Favoris", false)
     }
     private fun browse(title: String, kind: String, section: String, category: String? = null) {
-        if (kind != browseKind || title != browseTitle) languageFilter = "Tous"
         browseTitle = title; browseKind = kind; browseSection = section; browseCategory = category
-        page("browse", "$title · Choisis une catégorie ou cherche un titre.")
+        page("browse", if(kind in listOf("vod", "series")) "$title · En français" else "$title · Choisis une catégorie ou cherche un titre.")
         async("Chargement du catalogue…", {
             val api = Xtream(store.account() ?: error("Connecte ton compte."))
             api.categories(kind) to api.entries(kind, category)
-        }) { (cats, entries) -> categories = cats; items = entries; buildList(title, section, true) }
+        }) { (cats, entries) -> categories = cats; items = entries; buildList(title, section, true, kind in listOf("vod", "series")) }
     }
-    private fun buildList(title: String, section: String, filters: Boolean) {
-        listTitle = title; listSection = section; listFilters = filters
-        root.addView(label(title, 25f))
+    private fun buildList(title: String, section: String, filters: Boolean, covers: Boolean = false) {
+        listTitle = title; listSection = section; listFilters = filters; gallery = covers
+        if(!gallery) root.addView(label(title, 25f))
         val controls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val query = field("Rechercher…"); search = query
         controls.addView(query, LinearLayout.LayoutParams(0, dp(46), 1f))
         controls.addView(button("Chercher") { renderRows(section) }, LinearLayout.LayoutParams(dp(110), dp(46)).apply { leftMargin = dp(8) })
-        if(filters) controls.addView(button("Catégories") { chooseCategory() }, LinearLayout.LayoutParams(dp(130), dp(46)).apply { leftMargin = dp(8) })
+        if(filters && !gallery) controls.addView(button("Catégories") { chooseCategory() }, LinearLayout.LayoutParams(dp(130), dp(46)).apply { leftMargin = dp(8) })
+        if(gallery) controls.addView(button("Options") { selectedEntry()?.let { entryMenu(it) } ?: toast("Choisis d’abord un titre.") }, LinearLayout.LayoutParams(dp(110), dp(46)).apply { leftMargin = dp(8) })
         root.addView(controls)
-        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        if (filters && browseKind in listOf("vod", "series")) actions.addView(button("Langue : $languageFilter") {
-            AlertDialog.Builder(this).setTitle("Trouver un contenu").setItems(arrayOf("Tous", "Français", "Québec")) { _, which ->
-                val state = captureList()!!.copy(language = listOf("Tous", "Français", "Québec")[which], selected = 0)
-                restoreList(state)
-            }.show()
-        }, LinearLayout.LayoutParams(0, dp(46), 1f).apply { rightMargin = dp(8) })
-        actions.addView(button("Options / Favoris") { selectedEntry()?.let { entryMenu(it) } ?: toast("Choisis d’abord un titre dans la liste.") }, LinearLayout.LayoutParams(0, dp(46), 1f))
-        root.addView(actions)
-        val hint = label("OK : ouvrir  ·  Menu : favoris et horaire  ·  Appui long OK : favori", 13f, muted); root.addView(hint)
-        list = ListView(this).apply { dividerHeight = dp(6); isFocusable = true; setPadding(0, dp(4), 0, 0); clipToPadding = false }
+        if(!gallery) {
+            val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            actions.addView(button("Options / Favoris") { selectedEntry()?.let { entryMenu(it) } ?: toast("Choisis d’abord un titre dans la liste.") }, LinearLayout.LayoutParams(-1, dp(46)))
+            root.addView(actions)
+            root.addView(label("OK : ouvrir  ·  Menu : favoris  ·  Appui long OK : favori", 13f, muted))
+        }
+        list = if(gallery) GridView(this).apply {
+            numColumns = if(resources.configuration.screenWidthDp < 800) 5 else 6
+            horizontalSpacing = dp(12); verticalSpacing = dp(14); stretchMode = GridView.STRETCH_COLUMN_WIDTH
+            setPadding(0, dp(12), 0, dp(4)); clipToPadding = false
+        } else ListView(this).apply { dividerHeight = dp(6); setPadding(0, dp(4), 0, 0); clipToPadding = false }
+        list?.isFocusable = true
         list?.selector = android.graphics.drawable.ColorDrawable(Color.TRANSPARENT)
         lastListSelection = 0
         list?.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -319,30 +321,39 @@ class MainActivity : Activity() {
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
         root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
-        renderRows(section); list?.requestFocus()
+        val empty = label("", 18f, muted).apply { gravity = Gravity.CENTER; isFocusable = true; visibility = View.GONE }
+        root.addView(empty, LinearLayout.LayoutParams(-1, 0, 1f)); list?.emptyView = empty
+        renderRows(section)
+        if(shownEntries.isEmpty()) empty.requestFocus() else list?.requestFocus()
     }
     private fun renderRows(section: String) {
         val query = CatalogRules.normalize(search?.text.toString())
         val names = categories.associate { it.id to it.name }
         val favourites = store.favourites()
         val shown = items.filter { (section != "Favoris" || it.key in favourites) && CatalogRules.matches(section, names[it.category] ?: "", it.name, it.adult) &&
-            (!listFilters || CatalogRules.matches(languageFilter, names[it.category] ?: "", it.name)) && CatalogRules.normalize(it.name).contains(query) }
+            (!gallery || CatalogRules.isFrenchVod(names[it.category] ?: "", it.name)) && CatalogRules.normalize(it.name).contains(query) }
         shownEntries = shown
-        val labels = shown.map { "${if(it.key in favourites) "★  " else ""}${it.name}\n${names[it.category] ?: when(it.kind) { "live" -> "Chaîne en direct"; "vod" -> "Film"; "series" -> "Série"; else -> "Épisode" }}" }
-        list?.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, labels) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View = (super.getView(position, convertView, parent) as TextView).apply {
-                textSize = 18f; setTextColor(Color.WHITE); setPadding(dp(16), dp(8), dp(16), dp(8)); minHeight = dp(68)
-                background = android.graphics.drawable.StateListDrawable().apply {
-                    addState(intArrayOf(android.R.attr.state_selected), shape(TvTheme.selected, accent))
-                    addState(intArrayOf(android.R.attr.state_pressed), shape(TvTheme.selected, accent))
-                    addState(intArrayOf(), shape(panel))
+        (list?.emptyView as? TextView)?.text = if(section == "Favoris") "Tes favoris apparaîtront ici. Utilise Options / Favoris sur un titre." else if(gallery) "Aucun titre en français dans cette sélection. Essaie une autre recherche." else "Aucun résultat. Essaie une autre recherche ou catégorie."
+        if(gallery) {
+            posters.cancelPending()
+            val inset = TvSafeArea.insets(this, store.prefs.getBoolean("wide_safe_area", false))
+            val columns = (list as GridView).numColumns
+            val width = (resources.displayMetrics.widthPixels - 2 * inset.horizontal - (columns - 1) * dp(12)) / columns
+            list?.adapter = PosterAdapter(this, shown, favourites, posters, ((width - dp(8)) * 1.5f).toInt())
+        } else {
+            val labels = shown.map { "${if(it.key in favourites) "★  " else ""}${it.name}\n${names[it.category] ?: when(it.kind) { "live" -> "Chaîne en direct"; "vod" -> "Film"; "series" -> "Série"; else -> "Épisode" }}" }
+            list?.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, labels) {
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View = (super.getView(position, convertView, parent) as TextView).apply {
+                    textSize = 18f; setTextColor(Color.WHITE); setPadding(dp(16), dp(8), dp(16), dp(8)); minHeight = dp(68)
+                    background = android.graphics.drawable.StateListDrawable().apply {
+                        addState(intArrayOf(android.R.attr.state_selected), shape(TvTheme.selected, accent))
+                        addState(intArrayOf(android.R.attr.state_pressed), shape(TvTheme.selected, accent))
+                        addState(intArrayOf(), shape(panel))
+                    }
                 }
             }
         }
-        list?.emptyView = null
-        if (shown.isEmpty()) { list?.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listOf(if(section == "Favoris") "Tes favoris apparaîtront ici. Utilise Options / Favoris sur un titre." else "Aucun résultat. Essaie une autre langue ou catégorie.")) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View = (super.getView(position, convertView, parent) as TextView).apply { setTextColor(muted); textSize = 17f }
-        }; list?.setOnItemClickListener(null); list?.setOnItemLongClickListener(null) }
+        if(shown.isEmpty()) { list?.setOnItemClickListener(null); list?.setOnItemLongClickListener(null) }
         else {
             list?.setOnItemClickListener { _, _, index, _ -> lastListSelection = index; val entry = shown[index]; if(entry.kind == "series") episodes(entry) else play(entry) }
             list?.setOnItemLongClickListener { _, _, index, _ -> toast(if(store.toggle(shown[index])) "Ajouté aux favoris" else "Retiré des favoris"); renderRows(section); list?.setSelection(index); true }
@@ -350,10 +361,10 @@ class MainActivity : Activity() {
     }
     private fun selectedEntry() = shownEntries.getOrNull(list?.selectedItemPosition?.takeIf { it >= 0 } ?: lastListSelection)
     private fun captureList(): ListState? = if (screen in listOf("browse", "episodes") && list != null)
-        ListState(listTitle, listSection, listFilters, screen, categories, items, search?.text.toString(), lastListSelection, languageFilter) else null
+        ListState(listTitle, listSection, listFilters, screen, categories, items, search?.text.toString(), lastListSelection, gallery) else null
     private fun restoreList(state: ListState) {
-        page(state.screen, state.title); categories = state.categories; items = state.entries; languageFilter = state.language
-        buildList(state.title, state.section, state.filters); search?.setText(state.query); renderRows(state.section)
+        page(state.screen, if(state.gallery) "${state.title} · En français" else state.title); categories = state.categories; items = state.entries
+        buildList(state.title, state.section, state.filters, state.gallery); search?.setText(state.query); renderRows(state.section)
         lastListSelection = state.selected.coerceAtMost((shownEntries.size - 1).coerceAtLeast(0))
         list?.setSelection(lastListSelection); list?.requestFocus()
     }
@@ -386,18 +397,38 @@ class MainActivity : Activity() {
         releasePlayer(); current = entry; playbackPosition = position; audioRestored = false; retries = 0
         page("player", entry.name)
         root.removeAllViews(); root.setPadding(0, 0, 0, 0)
+        val stage = FrameLayout(this)
+        root.addView(stage, LinearLayout.LayoutParams(-1, -1))
+        val inset = TvSafeArea.insets(this, store.prefs.getBoolean("wide_safe_area", false))
+        val video = PlayerView(this).apply { id = View.generateViewId(); useController = true; controllerShowTimeoutMs = 5000; setShowSubtitleButton(true); setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING) }
+        stage.addView(video, FrameLayout.LayoutParams(-1, -1)); playerView = video
         val heading = label(entry.name, 20f, accent).apply {
-            setPadding(dp(24), dp(8), dp(24), dp(8)); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
+            setPadding(dp(16), dp(8), dp(16), dp(8)); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
+            background = shape(Color.argb(200, 25, 19, 31))
         }
-        root.addView(heading, LinearLayout.LayoutParams(-1, dp(48)))
-        val video = PlayerView(this).apply { useController = true; controllerShowTimeoutMs = 5000; setShowSubtitleButton(true); setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING) }
-        root.addView(video, LinearLayout.LayoutParams(-1, 0, 1f)); playerView = video
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        stage.addView(heading, FrameLayout.LayoutParams(-1, dp(48), Gravity.TOP).apply { leftMargin = inset.horizontal; rightMargin = inset.horizontal; topMargin = inset.vertical })
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(8), dp(8), dp(8), dp(8)); background = shape(Color.argb(210, 25, 19, 31)) }
         val playbackActions = mutableListOf<Pair<String, () -> Unit>>("Audio / Son" to { audioMenu() }, "Infos" to { streamInfo() }, "★ Favori" to { toast(if(store.toggle(entry)) "Ajouté aux favoris" else "Retiré des favoris") }, "Reprendre" to { retryTask?.let { main.removeCallbacks(it) }; retries = 0; player?.prepare(); player?.play() })
         if(entry.kind == "live") playbackActions.add("Guide TV" to { openTvGuide(entry.id) })
         playbackActions.add("Retour" to { leavePlayer() })
-        playbackActions.forEach { (t, f) -> row.addView(button(t, f).apply { textSize = 14f; setPadding(dp(6), 0, dp(6), 0) }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(6) }) }
-        root.addView(row)
+        playbackActions.forEachIndexed { index, (t, f) -> row.addView(button(t, f).apply {
+            id = View.generateViewId(); textSize = 14f; setPadding(dp(6), 0, dp(6), 0); nextFocusUpId = video.id
+            setOnFocusChangeListener { _, focus ->
+                background = shape(if(focus) accent else panel); setTextColor(if(focus) bg else Color.WHITE)
+                video.controllerShowTimeoutMs = if(focus) 0 else 5000
+                if(focus) video.showController()
+            }
+        }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { if(index < playbackActions.lastIndex) rightMargin = dp(6) }) }
+        stage.addView(row, FrameLayout.LayoutParams(-1, dp(64), Gravity.BOTTOM).apply { leftMargin = inset.horizontal; rightMargin = inset.horizontal; bottomMargin = inset.vertical })
+        video.findViewById<View>(androidx.media3.ui.R.id.exo_controller)?.let { controller ->
+            controller.layoutParams = (controller.layoutParams as FrameLayout.LayoutParams).apply {
+                leftMargin = inset.horizontal; rightMargin = inset.horizontal; topMargin = inset.vertical
+                bottomMargin = inset.vertical + dp(72)
+            }
+        }
+        // Media3 pop-ups can align to the window edge; use our centered TV dialogs instead.
+        video.findViewById<View>(androidx.media3.ui.R.id.exo_settings)?.setOnClickListener { playbackSettings() }
+        video.findViewById<View>(androidx.media3.ui.R.id.exo_subtitle)?.setOnClickListener { subtitleMenu() }
         video.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
             val chrome = if(visibility == View.VISIBLE || row.hasFocus()) View.VISIBLE else View.GONE
             heading.visibility = chrome; row.visibility = chrome
@@ -450,6 +481,35 @@ class MainActivity : Activity() {
         audioRestored = true
         if(choices.all { it.described } && store.prefs.getBoolean("avoid_description", true)) toast("Le fournisseur propose seulement des pistes avec audiodescription.")
         chosen?.let { p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setOverrideForType(TrackSelectionOverride(it.first.mediaTrackGroup, it.second)).build() }
+    }
+    private fun playbackSettings() {
+        AlertDialog.Builder(this).setTitle("Lecture").setItems(arrayOf("Audio / Son", "Sous-titres", "Vitesse")) { _, which ->
+            when(which) {
+                0 -> audioMenu()
+                1 -> subtitleMenu()
+                2 -> {
+                    val speeds = floatArrayOf(.5f, .75f, 1f, 1.25f, 1.5f, 2f)
+                    AlertDialog.Builder(this).setTitle("Vitesse de lecture").setSingleChoiceItems(
+                        speeds.map { if(it == 1f) "Normale" else "${it}×" }.toTypedArray(), speeds.indexOfFirst { it == (player?.playbackParameters?.speed ?: 1f) }
+                    ) { dialog, index -> player?.setPlaybackSpeed(speeds[index]); dialog.dismiss() }.setNegativeButton("Fermer", null).show()
+                }
+            }
+        }.setNegativeButton("Fermer", null).show()
+    }
+    private fun subtitleMenu() {
+        val p = player ?: return
+        val options = p.currentTracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }.flatMap { group ->
+            (0 until group.length).filter { group.isTrackSupported(it) }.map { group to it }
+        }
+        val titles = listOf("Désactivés") + options.map { (group, index) ->
+            val format = group.getTrackFormat(index)
+            "${if(group.isTrackSelected(index)) "✓ " else ""}${format.label ?: format.language ?: "Piste ${index + 1}"}"
+        }
+        AlertDialog.Builder(this).setTitle("Sous-titres").setItems(titles.toTypedArray()) { _, which ->
+            val selection = p.trackSelectionParameters.buildUpon().clearOverridesOfType(C.TRACK_TYPE_TEXT).setTrackTypeDisabled(C.TRACK_TYPE_TEXT, which == 0)
+            if(which > 0) options[which - 1].let { (group, index) -> selection.setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, index)) }
+            p.trackSelectionParameters = selection.build()
+        }.setNegativeButton("Fermer", null).show()
     }
     private fun audioMenu() {
         val p = player ?: return
