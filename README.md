@@ -38,7 +38,7 @@ Chaque Fire Stick garde son propre compte Xtream, chiffré avec Android Keystore
 
 Dans **Réglages → Vérifier les mises à jour**, l’app lit `update.json` dans la dernière release stable de `kcote84/VickTV`, puis propose le téléchargement et l’installateur système. Validation SHA-256, nom du paquet, version et certificat avant ouverture de l’installateur. Garder la même clé de signature à chaque version.
 
-**Le téléchargement intégré exige une distribution publique.** Kev a autorisé le passage en public le 21 octobre 2026; son application dans GitHub nécessite encore la vérification d’identité du propriétaire. Tant que le dépôt reste privé, les téléchargements exigent un navigateur connecté. Aucune clé GitHub n’est embarquée dans l’APK.
+**Le dépôt et les APK sont publics depuis le 21 octobre 2026.** Le téléchargement et l’accès au manifeste de mise à jour ne demandent donc pas de compte GitHub. Aucune clé GitHub n’est embarquée dans l’APK. L’installation et la mise à jour sur Fire Stick restent à valider sur les appareils réels.
 
 ## Développement
 
