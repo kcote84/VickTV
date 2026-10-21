@@ -1,15 +1,12 @@
-# VickTV 0.2.1
+# VickTV 0.3.0
 
-- Mise à jour plus fiable quand le stockage est presque plein : le fichier téléchargé est conservé hors du cache que le système peut effacer avant l’installation.
-- Si le fichier n’est plus disponible, une invitation à le télécharger de nouveau remplace l’erreur de l’installateur.
-- Lecture plein écran lorsque les commandes sont masquées; titre et boutons réapparaissent avec les commandes.
-- Retour vers la liste et la recherche précédentes après lecture; retour des épisodes vers leur liste d’origine.
-- Bouton visible pour les favoris et les options de la chaîne; retrait immédiat dans Favoris.
-- Filtres Français et Québec pour Films et Séries, selon les noms des catégories du fournisseur.
-- Horaire par chaîne : émission en cours, prochaines émissions et descriptions lorsque Xtream les fournit. Pas encore de grille multichaîne.
-- Audiodescription évitée par défaut lorsqu’une autre piste prise en charge est disponible; détection des rôles et libellés, repli vers une piste normale d’une autre langue au besoin.
-- Choix audio Automatique / Stéréo / Cinéma 5.1 et possibilité de réinitialiser le choix mémorisé d’un contenu. Ces préférences ne garantissent ni conversion audio ni sortie HDMI 5.1.
-- Correction d’un état de chargement obsolète et tri des épisodes par numéro.
-- La publication automatique vérifie désormais le certificat initial avant de créer la release et transmet les notes à l’écran de mise à jour.
+- Nouveau Guide TV dès l’accueil : grille multichaîne, cinq chaînes visibles, deux heures à l’écran et jusqu’à douze heures à venir selon l’horaire reçu.
+- Navigation à la télécommande : haut/bas pour les chaînes, gauche/droite pour les émissions, OK pour regarder ou lire les détails. Sélection visible, grands caractères et repère de l’heure actuelle.
+- Français, Favoris, toutes les chaînes, catégories et recherche par nom ou numéro. Ajout et retrait immédiat des favoris dans le guide.
+- Retour du lecteur conservant la chaîne, le filtre et la position dans le guide. Bouton Guide TV dans le lecteur et les options des chaînes.
+- Aide simple en trois gestes; Menu donne accès aux favoris, aux filtres, à la recherche et à Maintenant depuis chaque chaîne.
+- Chargement progressif des horaires avec cache en mémoire. Repli vers l’horaire court si le guide complet n’est pas disponible; prise en charge des timestamps en secondes/millisecondes et des dates du fuseau déclaré par le serveur.
+- Les horaires absents ou en erreur sont indiqués sans empêcher de regarder la chaîne. Les émissions futures ne sont pas présentées comme du rattrapage.
+- Guide de démonstration sans compte, avec émissions fictives identifiées. Aucun flux ni abonnement inclus.
 
-APK signé avec la clé de la version 0.1.0. La lecture Edge, les télécommandes Fire TV et le son HDMI 5.1 restent à vérifier sur les appareils réels. Aucun contenu ni abonnement inclus. Une narration intégrée à la seule piste reçue ne peut pas être retirée.
+Les contrôles audio et la mise à jour GitHub de 0.2.1 sont conservés. APK signé avec la clé originale, mise à jour sur place sans désinstallation. Validation sur émulateur Android avec serveur Xtream synthétique; Edge, télécommande Fire TV et sortie HDMI 5.1 restent à vérifier sur les appareils réels.

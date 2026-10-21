@@ -40,14 +40,14 @@ class Store(context: Context) {
     fun clearFavourites() { prefs.edit().remove("favourites").remove("favourite_details").apply() }
     fun favouriteEntries(): List<Entry> = runCatching {
         val all = JSONObject(prefs.getString("favourite_details", "{}")!!)
-        favourites().mapNotNull { id -> all.optJSONObject(id)?.let { Entry(it.getString("id"), it.getString("name"), it.getString("category"), it.getString("kind"), it.getString("extension")) } }.sortedBy { it.name }
+        favourites().mapNotNull { id -> all.optJSONObject(id)?.let { Entry(it.getString("id"), it.getString("name"), it.getString("category"), it.getString("kind"), it.getString("extension"), it.optInt("number")) } }.sortedBy { it.name }
     }.getOrDefault(emptyList())
     fun toggle(entry: Entry): Boolean {
         val values = favourites().toMutableSet()
         val details = JSONObject(prefs.getString("favourite_details", "{}")!!)
         val added = if (values.remove(entry.key)) { details.remove(entry.key); false } else {
             values.add(entry.key)
-            details.put(entry.key, JSONObject().put("id", entry.id).put("name", entry.name).put("category", entry.category).put("kind", entry.kind).put("extension", entry.extension))
+            details.put(entry.key, JSONObject().put("id", entry.id).put("name", entry.name).put("category", entry.category).put("kind", entry.kind).put("extension", entry.extension).put("number", entry.number))
             true
         }
         prefs.edit().putStringSet("favourites", values).putString("favourite_details", details.toString()).apply()

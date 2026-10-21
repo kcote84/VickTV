@@ -1,0 +1,11 @@
+<resources>
+    <string name="guide_title">Guide TV</string>
+    <string name="guide_demo_label">DÉMO · EXEMPLE D’HORAIRE</string>
+    <string name="guide_tagline">TON GUIDE, TOUT SIMPLEMENT</string>
+    <string name="guide_loading">Chargement des chaînes…</string>
+    <string name="guide_loading_hint">Tu peux revenir à l’accueil avec Retour.</string>
+    <string name="guide_connection_failed">Le guide n’a pas pu se charger</string>
+    <string name="guide_connection_retry">Vérifie Internet, puis choisis Réessayer.</string>
+    <string name="guide_hint">↑↓ Chaînes  ·  ←→ Émissions  ·  OK Choisir  ·  Menu Options  ·  Retour Accueil</string>
+    <string name="guide_hint_demo">DÉMO · ↑↓ Chaînes  ·  ←→ Émissions  ·  OK Choisir  ·  Menu Options  ·  Retour Accueil</string>
+</resources>

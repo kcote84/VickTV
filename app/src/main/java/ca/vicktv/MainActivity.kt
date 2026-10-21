@@ -62,6 +62,8 @@ class MainActivity : Activity() {
         val categories: List<Category>, val entries: List<Entry>, val query: String, val selected: Int, val language: String)
     private var playerOrigin: ListState? = null
     private var seriesOrigin: ListState? = null
+    private var guideScreen: TvGuideScreen? = null
+    private var returnToGuide = false
     private val bg = Color.rgb(16, 26, 34)
     private val panel = Color.rgb(30, 46, 57)
     private val mint = Color.rgb(100, 224, 180)
@@ -75,6 +77,7 @@ class MainActivity : Activity() {
     }
     override fun onStart() {
         super.onStart()
+        if (screen == "guide") guideScreen?.resume()
         if (screen == "player" && player == null && current != null) play(current!!, playbackPosition)
         if ((greetingPending || stopped) && screen == "home" && store.prefs.getBoolean("love", true)) {
             greetingPending = false
@@ -84,12 +87,13 @@ class MainActivity : Activity() {
         if (screen == "settings" && pendingInstall != null) settings()
     }
     override fun onStop() {
+        guideScreen?.pause()
         stopped = true
         playbackPosition = player?.currentPosition ?: playbackPosition
         releasePlayer()
         super.onStop()
     }
-    override fun onDestroy() { requestId++; releasePlayer(); work.shutdownNow(); main.removeCallbacksAndMessages(null); super.onDestroy() }
+    override fun onDestroy() { requestId++; guideScreen?.close(); releasePlayer(); work.shutdownNow(); main.removeCallbacksAndMessages(null); super.onDestroy() }
     @Deprecated("TV back navigation")
     override fun onBackPressed() {
         when (screen) {
@@ -122,6 +126,7 @@ class MainActivity : Activity() {
         parent.addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)).apply { bottomMargin = dp(8) })
     }
     private fun page(name: String, subtitle: String): LinearLayout {
+        if (name != "guide") guideScreen?.pause()
         requestId++; busy = false; screen = name; list = null; search = null
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(34), dp(18), dp(34), dp(14)); setBackgroundColor(bg) }
         setContentView(root)
@@ -133,17 +138,19 @@ class MainActivity : Activity() {
         return root
     }
     private fun home() {
-        playerOrigin = null; seriesOrigin = null
+        playerOrigin = null; seriesOrigin = null; returnToGuide = false
         page("home", "Ta soirée, tout simplement.")
-        root.addView(label("Qu’est-ce qu’on regarde ?", 30f).apply { setTypeface(null, Typeface.BOLD) })
+        root.addView(label("Qu’est-ce qu’on regarde ?", 26f).apply { setTypeface(null, Typeface.BOLD) })
         if (store.account() == null) root.addView(label("Bienvenue ! Connecte ton compte ou explore le mode démo.", 16f, muted))
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val guide = button("Guide TV   ·   Ce qui joue maintenant et plus tard") { openTvGuide() }.apply { textSize = 20f }
+        root.addView(guide, LinearLayout.LayoutParams(-1, dp(62)).apply { setMargins(0, dp(8), dp(12), 0) })
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false }
         val sections = listOf("Français" to "CHAÎNES FRANCOPHONES", "Sports" to "LE DIRECT, EN GRAND", "Films" to "SOIRÉE CINÉMA", "Séries" to "ENCORE UN ÉPISODE")
         sections.forEach { (title, detail) ->
             val b = button("$title\n\n$detail") {
                 if (store.account() == null) demo(title) else browse(title, when(title) { "Films" -> "vod"; "Séries" -> "series"; else -> "live" }, title)
             }.apply { textSize = 17f }
-            row.addView(b, LinearLayout.LayoutParams(0, dp(126), 1f).apply { setMargins(0, dp(10), dp(12), dp(10)) })
+            row.addView(b, LinearLayout.LayoutParams(0, dp(100), 1f).apply { setMargins(0, dp(10), dp(12), dp(10)) })
         }
         root.addView(row)
         val footer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -154,7 +161,21 @@ class MainActivity : Activity() {
         ).forEach { (t, f) -> footer.addView(button(t, f), LinearLayout.LayoutParams(0, dp(50), 1f).apply { rightMargin = dp(12) }) }
         root.addView(footer)
         root.addView(label("Flèches pour naviguer  ·  OK pour choisir  ·  Retour pour revenir", 12f, muted))
-        row.getChildAt(0).requestFocus()
+        guide.requestFocus()
+    }
+    private fun openTvGuide(channelId: String? = null) {
+        releasePlayer(); current = null
+        val account = store.account()
+        if (guideScreen == null || guideScreen?.account != account) {
+            guideScreen?.close()
+            guideScreen = TvGuideScreen(this, account, store, { entry -> returnToGuide = true; playerOrigin = null; play(entry) }, { login() })
+        }
+        page("guide", "")
+        root.removeAllViews(); root.setPadding(0, 0, 0, 0)
+        val guide = guideScreen!!
+        (guide.view.parent as? ViewGroup)?.removeView(guide.view)
+        root.addView(guide.view, LinearLayout.LayoutParams(-1, -1))
+        guide.resume(channelId)
     }
     private fun love() {
         val index = store.prefs.getInt("love_index", 0)
@@ -302,36 +323,16 @@ class MainActivity : Activity() {
     }
     private fun leavePlayer() {
         releasePlayer(); current = null
-        playerOrigin?.let { restoreList(it) } ?: home()
+        if(returnToGuide) openTvGuide() else playerOrigin?.let { restoreList(it) } ?: home()
     }
     private fun entryMenu(entry: Entry) {
         val options = mutableListOf(if(entry.kind == "series") "Voir les épisodes" else "Regarder", if(entry.key in store.favourites()) "Retirer des favoris" else "Ajouter aux favoris")
-        if(entry.kind == "live") options.add("Horaire de cette chaîne")
+        if(entry.kind == "live") options.add("Guide TV · cette chaîne")
         AlertDialog.Builder(this).setTitle(entry.name).setItems(options.toTypedArray()) { _, which -> when(which) {
             0 -> if(entry.kind == "series") episodes(entry) else play(entry)
             1 -> { val selection = shownEntries.indexOfFirst { it.key == entry.key }.coerceAtLeast(0); toast(if(store.toggle(entry)) "Ajouté aux favoris" else "Retiré des favoris"); renderRows(listSection); list?.setSelection(selection.coerceAtMost((shownEntries.size - 1).coerceAtLeast(0))) }
-            2 -> showGuide(entry)
+            2 -> openTvGuide(entry.id)
         } }.setNegativeButton("Fermer", null).show()
-    }
-    private fun showGuide(entry: Entry) {
-        if (busy) return
-        async("Chargement de l’horaire…", { Xtream(store.account() ?: error("Connecte ton compte.")).guide(entry) }) { programmes ->
-            val now = System.currentTimeMillis()
-            val upcoming = programmes.filter { it.end > now }
-            if(upcoming.isEmpty()) message("Horaire · ${entry.name}", "Le fournisseur n’a pas retourné d’horaire pour cette chaîne.")
-            else {
-                val time = java.text.SimpleDateFormat("EEE HH:mm", java.util.Locale.CANADA_FRENCH)
-                val endTime = java.text.SimpleDateFormat("HH:mm", java.util.Locale.CANADA_FRENCH)
-                AlertDialog.Builder(this).setTitle("Horaire · ${entry.name}").setItems(upcoming.map {
-                    "${if(it.isNow(now)) "EN COURS · " else ""}${time.format(java.util.Date(it.start))} – ${endTime.format(java.util.Date(it.end))}\n${it.title}"
-                }.toTypedArray()) { _, which ->
-                    val programme = upcoming[which]
-                    AlertDialog.Builder(this).setTitle(programme.title).setMessage(programme.description.ifBlank { "Aucune description fournie." })
-                        .setPositiveButton("Regarder la chaîne") { _, _ -> if(screen != "player") play(entry) }
-                        .setNegativeButton("Retour à l’horaire") { _, _ -> showGuide(entry) }.show()
-                }.setNegativeButton("Fermer", null).show()
-            }
-        }
     }
     private fun chooseCategory() {
         val options = listOf(Category("", "Toutes les catégories")) + categories
@@ -357,7 +358,7 @@ class MainActivity : Activity() {
         root.addView(video, LinearLayout.LayoutParams(-1, 0, 1f)); playerView = video
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val playbackActions = mutableListOf<Pair<String, () -> Unit>>("Audio / Son" to { audioMenu() }, "Infos" to { streamInfo() }, "★ Favori" to { toast(if(store.toggle(entry)) "Ajouté aux favoris" else "Retiré des favoris") }, "Reprendre" to { retryTask?.let { main.removeCallbacks(it) }; retries = 0; player?.prepare(); player?.play() })
-        if(entry.kind == "live") playbackActions.add("Horaire" to { showGuide(entry) })
+        if(entry.kind == "live") playbackActions.add("Guide TV" to { openTvGuide(entry.id) })
         playbackActions.add("Retour" to { leavePlayer() })
         playbackActions.forEach { (t, f) -> row.addView(button(t, f).apply { textSize = 14f; setPadding(dp(6), 0, dp(6), 0) }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(6) }) }
         root.addView(row)
