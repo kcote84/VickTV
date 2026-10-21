@@ -10,16 +10,17 @@ p.add_argument('--apk', required=True, type=pathlib.Path)
 p.add_argument('--repo', default='kcote84/VickTV')
 p.add_argument('--tag', required=True)
 p.add_argument('--notes', default='Première version de VickTV : chaînes, films, séries, favoris et 50 petits mots doux.')
+p.add_argument('--notes-file', type=pathlib.Path, help='Notes de version UTF-8 à afficher dans le lecteur.')
 p.add_argument('--output', default='dist/update.json', type=pathlib.Path)
 a = p.parse_args()
-config = pathlib.Path('app/build.gradle.kts').read_text()
+config = pathlib.Path('app/build.gradle.kts').read_text(encoding='utf-8')
 code = int(re.search(r'versionCode\s*=\s*(\d+)', config).group(1))
 name = re.search(r'versionName\s*=\s*"([^"]+)"', config).group(1)
 if a.tag != 'v' + name:
     raise SystemExit('Le tag doit correspondre à versionName : v' + name)
-data = {'versionCode': code, 'versionName': name, 'notes': a.notes,
+data = {'versionCode': code, 'versionName': name, 'notes': a.notes_file.read_text(encoding='utf-8') if a.notes_file else a.notes,
         'apkUrl': f'https://github.com/{a.repo}/releases/download/{a.tag}/VickTV.apk',
         'sha256': hashlib.file_digest(a.apk.open('rb'), 'sha256').hexdigest()}
 a.output.parent.mkdir(parents=True, exist_ok=True)
-a.output.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+a.output.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 print(f'Manifeste généré pour {name} ({code}).')

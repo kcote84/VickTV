@@ -52,6 +52,16 @@ class MainActivity : Activity() {
     private var items = listOf<Entry>()
     private var list: ListView? = null
     private var search: EditText? = null
+    private var languageFilter = "Tous"
+    private var listTitle = ""
+    private var listSection = ""
+    private var listFilters = false
+    private var shownEntries = emptyList<Entry>()
+    private var lastListSelection = 0
+    private data class ListState(val title: String, val section: String, val filters: Boolean, val screen: String,
+        val categories: List<Category>, val entries: List<Entry>, val query: String, val selected: Int, val language: String)
+    private var playerOrigin: ListState? = null
+    private var seriesOrigin: ListState? = null
     private val bg = Color.rgb(16, 26, 34)
     private val panel = Color.rgb(30, 46, 57)
     private val mint = Color.rgb(100, 224, 180)
@@ -83,14 +93,18 @@ class MainActivity : Activity() {
     @Deprecated("TV back navigation")
     override fun onBackPressed() {
         when (screen) {
-            "home" -> AlertDialog.Builder(this).setTitle("Quitter VickTV ?").setNegativeButton("Rester", null).setPositiveButton("Quitter") { _, _ -> finish() }.show()
-            "episodes" -> browse(browseTitle, "series", "", browseCategory)
+            "home" -> finish()
+            "player" -> leavePlayer()
+            "episodes" -> seriesOrigin?.let { restoreList(it) } ?: home()
             else -> { releasePlayer(); current = null; home() }
         }
     }
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (screen == "player" && keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) { player?.let { if (it.isPlaying) it.pause() else it.play() }; return true }
         if (screen == "player" && keyCode == KeyEvent.KEYCODE_MENU) { audioMenu(); return true }
+        if (list?.hasFocus() == true && keyCode == KeyEvent.KEYCODE_MENU) {
+            shownEntries.getOrNull(list!!.selectedItemPosition)?.let { entryMenu(it) }; return true
+        }
         return super.onKeyDown(keyCode, event)
     }
     private fun shape(color: Int, border: Int? = null): GradientDrawable = GradientDrawable().apply {
@@ -100,6 +114,7 @@ class MainActivity : Activity() {
     private fun button(title: String, action: () -> Unit): Button = Button(this).apply {
         text = title; textSize = 16f; isAllCaps = false; setTextColor(Color.WHITE); gravity = Gravity.CENTER
         minHeight = dp(48); setPadding(dp(18), dp(8), dp(18), dp(8)); background = shape(panel)
+        defaultFocusHighlightEnabled = false
         setOnFocusChangeListener { _, focus -> background = shape(if (focus) mint else panel); setTextColor(if (focus) bg else Color.WHITE) }
         setOnClickListener { action() }
     }
@@ -107,7 +122,7 @@ class MainActivity : Activity() {
         parent.addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)).apply { bottomMargin = dp(8) })
     }
     private fun page(name: String, subtitle: String): LinearLayout {
-        requestId++; screen = name; list = null; search = null
+        requestId++; busy = false; screen = name; list = null; search = null
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(34), dp(18), dp(34), dp(14)); setBackgroundColor(bg) }
         setContentView(root)
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
@@ -118,6 +133,7 @@ class MainActivity : Activity() {
         return root
     }
     private fun home() {
+        playerOrigin = null; seriesOrigin = null
         page("home", "Ta soirée, tout simplement.")
         root.addView(label("Qu’est-ce qu’on regarde ?", 30f).apply { setTypeface(null, Typeface.BOLD) })
         if (store.account() == null) root.addView(label("Bienvenue ! Connecte ton compte ou explore le mode démo.", 16f, muted))
@@ -158,12 +174,21 @@ class MainActivity : Activity() {
         addButton(body, if (store.account() == null) "Connecter mon compte Xtream" else "Modifier mon compte Xtream") { login() }
         addButton(body, "Mots d’amour : ${if(store.prefs.getBoolean("love", true)) "activés" else "désactivés"}") { store.prefs.edit().putBoolean("love", !store.prefs.getBoolean("love", true)).apply(); settings() }
         addButton(body, "Format du direct : ${if(store.prefs.getBoolean("hls", false)) "HLS" else "MPEG-TS"}") { store.prefs.edit().putBoolean("hls", !store.prefs.getBoolean("hls", false)).apply(); settings() }
-        addButton(body, "Audio : ${if(store.prefs.getBoolean("stereo", false)) "préférer stéréo" else "automatique"}") { store.prefs.edit().putBoolean("stereo", !store.prefs.getBoolean("stereo", false)).apply(); settings() }
+        addButton(body, "Audio : ${audioModeLabel()}") {
+            AlertDialog.Builder(this).setTitle("Préférence audio").setItems(arrayOf("Automatique", "Stéréo", "Cinéma / 5.1")) { _, which ->
+                store.prefs.edit().putString("audio_mode", listOf("auto", "stereo", "surround")[which]).apply(); settings()
+            }.show()
+        }
+        addButton(body, "Éviter l’audiodescription : ${if(store.prefs.getBoolean("avoid_description", true)) "oui" else "non"}") {
+            store.prefs.edit().putBoolean("avoid_description", !store.prefs.getBoolean("avoid_description", true)).apply(); settings()
+        }
         addButton(body, "Vérifier les mises à jour · ${BuildConfig.VERSION_NAME}") { checkUpdate() }
         if (pendingInstall != null) addButton(body, "Installer la mise à jour téléchargée") { installUpdate() }
         addButton(body, "Retour") { home() }
-        body.addView(label("Le réglage stéréo préfère une piste 2 canaux disponible; il ne garantit pas la conversion du Dolby.\nLes comptes restent sur ce Fire Stick. Version de départ : Android / Fire OS 7 ou supérieur.", 12f, muted))
+        body.addView(label("Stéréo et 5.1 préfèrent une piste disponible; la sortie dépend de ta télé et du Fire Stick.\nL’audiodescription est évitée par défaut si une piste normale est disponible.\nLes comptes restent sur ce Fire Stick. Android 8 / Fire OS 7 ou supérieur.", 14f, muted))
     }
+    private fun audioMode() = store.prefs.getString("audio_mode", if(store.prefs.getBoolean("stereo", false)) "stereo" else "auto") ?: "auto"
+    private fun audioModeLabel() = when(audioMode()) { "stereo" -> "Stéréo"; "surround" -> "Cinéma / 5.1"; else -> "Automatique" }
     private fun field(hintText: String, value: String = "", secret: Boolean = false) = EditText(this).apply {
         hint = hintText; setText(value); textSize = 16f; setSingleLine(true); setTextColor(Color.WHITE); setHintTextColor(muted)
         inputType = if(secret) InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD else InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
@@ -198,9 +223,11 @@ class MainActivity : Activity() {
     private fun favourites() {
         page("browse", "Tes favoris, réunis au même endroit.")
         items = store.favouriteEntries(); categories = emptyList()
-        buildList("Favoris", "", false)
+        languageFilter = "Tous"
+        buildList("Favoris", "Favoris", false)
     }
     private fun browse(title: String, kind: String, section: String, category: String? = null) {
+        if (kind != browseKind || title != browseTitle) languageFilter = "Tous"
         browseTitle = title; browseKind = kind; browseSection = section; browseCategory = category
         page("browse", "$title · Choisis une catégorie ou cherche un titre.")
         async("Chargement du catalogue…", {
@@ -209,6 +236,7 @@ class MainActivity : Activity() {
         }) { (cats, entries) -> categories = cats; items = entries; buildList(title, section, true) }
     }
     private fun buildList(title: String, section: String, filters: Boolean) {
+        listTitle = title; listSection = section; listFilters = filters
         root.addView(label(title, 25f))
         val controls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val query = field("Rechercher…"); search = query
@@ -216,8 +244,23 @@ class MainActivity : Activity() {
         controls.addView(button("Chercher") { renderRows(section) }, LinearLayout.LayoutParams(dp(110), dp(46)).apply { leftMargin = dp(8) })
         if(filters) controls.addView(button("Catégories") { chooseCategory() }, LinearLayout.LayoutParams(dp(130), dp(46)).apply { leftMargin = dp(8) })
         root.addView(controls)
-        val hint = label("OK : regarder  ·  Appui long OK : ajouter/retirer des favoris", 12f, muted); root.addView(hint)
+        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        if (filters && browseKind in listOf("vod", "series")) actions.addView(button("Langue : $languageFilter") {
+            AlertDialog.Builder(this).setTitle("Trouver un contenu").setItems(arrayOf("Tous", "Français", "Québec")) { _, which ->
+                val state = captureList()!!.copy(language = listOf("Tous", "Français", "Québec")[which], selected = 0)
+                restoreList(state)
+            }.show()
+        }, LinearLayout.LayoutParams(0, dp(46), 1f).apply { rightMargin = dp(8) })
+        actions.addView(button("Options / Favoris") { selectedEntry()?.let { entryMenu(it) } ?: toast("Choisis d’abord un titre dans la liste.") }, LinearLayout.LayoutParams(0, dp(46), 1f))
+        root.addView(actions)
+        val hint = label("OK : ouvrir  ·  Menu : favoris et horaire  ·  Appui long OK : favori", 13f, muted); root.addView(hint)
         list = ListView(this).apply { dividerHeight = dp(6); isFocusable = true; setPadding(0, dp(4), 0, 0); clipToPadding = false }
+        list?.selector = android.graphics.drawable.ColorDrawable(Color.TRANSPARENT)
+        lastListSelection = 0
+        list?.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) { lastListSelection = position }
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
         root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
         renderRows(section); list?.requestFocus()
     }
@@ -225,11 +268,13 @@ class MainActivity : Activity() {
         val query = CatalogRules.normalize(search?.text.toString())
         val names = categories.associate { it.id to it.name }
         val favourites = store.favourites()
-        val shown = items.filter { (section != "Favoris" || it.key in favourites) && CatalogRules.matches(section, names[it.category] ?: "", it.name) && CatalogRules.normalize(it.name).contains(query) }
-        val labels = shown.map { "${if(it.key in favourites) "★  " else ""}${it.name}" }
+        val shown = items.filter { (section != "Favoris" || it.key in favourites) && CatalogRules.matches(section, names[it.category] ?: "", it.name) &&
+            (!listFilters || CatalogRules.matches(languageFilter, names[it.category] ?: "", it.name)) && CatalogRules.normalize(it.name).contains(query) }
+        shownEntries = shown
+        val labels = shown.map { "${if(it.key in favourites) "★  " else ""}${it.name}\n${names[it.category] ?: when(it.kind) { "live" -> "Chaîne en direct"; "vod" -> "Film"; "series" -> "Série"; else -> "Épisode" }}" }
         list?.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, labels) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View = (super.getView(position, convertView, parent) as TextView).apply {
-                textSize = 18f; setTextColor(Color.WHITE); setPadding(dp(16), dp(12), dp(16), dp(12)); minHeight = dp(52)
+                textSize = 18f; setTextColor(Color.WHITE); setPadding(dp(16), dp(8), dp(16), dp(8)); minHeight = dp(68)
                 background = android.graphics.drawable.StateListDrawable().apply {
                     addState(intArrayOf(android.R.attr.state_selected), shape(Color.rgb(43,105,88), mint))
                     addState(intArrayOf(android.R.attr.state_pressed), shape(Color.rgb(43,105,88), mint))
@@ -238,10 +283,54 @@ class MainActivity : Activity() {
             }
         }
         list?.emptyView = null
-        if (shown.isEmpty()) { list?.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, listOf("Aucun résultat. Essaie Toutes les chaînes ou une autre catégorie.")); list?.setOnItemClickListener(null); list?.setOnItemLongClickListener(null) }
+        if (shown.isEmpty()) { list?.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listOf(if(section == "Favoris") "Tes favoris apparaîtront ici. Utilise Options / Favoris sur un titre." else "Aucun résultat. Essaie une autre langue ou catégorie.")) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View = (super.getView(position, convertView, parent) as TextView).apply { setTextColor(muted); textSize = 17f }
+        }; list?.setOnItemClickListener(null); list?.setOnItemLongClickListener(null) }
         else {
-            list?.setOnItemClickListener { _, _, index, _ -> val entry = shown[index]; if(entry.kind == "series") episodes(entry) else play(entry) }
+            list?.setOnItemClickListener { _, _, index, _ -> lastListSelection = index; val entry = shown[index]; if(entry.kind == "series") episodes(entry) else play(entry) }
             list?.setOnItemLongClickListener { _, _, index, _ -> toast(if(store.toggle(shown[index])) "Ajouté aux favoris" else "Retiré des favoris"); renderRows(section); list?.setSelection(index); true }
+        }
+    }
+    private fun selectedEntry() = shownEntries.getOrNull(list?.selectedItemPosition?.takeIf { it >= 0 } ?: lastListSelection)
+    private fun captureList(): ListState? = if (screen in listOf("browse", "episodes") && list != null)
+        ListState(listTitle, listSection, listFilters, screen, categories, items, search?.text.toString(), lastListSelection, languageFilter) else null
+    private fun restoreList(state: ListState) {
+        page(state.screen, state.title); categories = state.categories; items = state.entries; languageFilter = state.language
+        buildList(state.title, state.section, state.filters); search?.setText(state.query); renderRows(state.section)
+        lastListSelection = state.selected.coerceAtMost((shownEntries.size - 1).coerceAtLeast(0))
+        list?.setSelection(lastListSelection); list?.requestFocus()
+    }
+    private fun leavePlayer() {
+        releasePlayer(); current = null
+        playerOrigin?.let { restoreList(it) } ?: home()
+    }
+    private fun entryMenu(entry: Entry) {
+        val options = mutableListOf(if(entry.kind == "series") "Voir les épisodes" else "Regarder", if(entry.key in store.favourites()) "Retirer des favoris" else "Ajouter aux favoris")
+        if(entry.kind == "live") options.add("Horaire de cette chaîne")
+        AlertDialog.Builder(this).setTitle(entry.name).setItems(options.toTypedArray()) { _, which -> when(which) {
+            0 -> if(entry.kind == "series") episodes(entry) else play(entry)
+            1 -> { val selection = shownEntries.indexOfFirst { it.key == entry.key }.coerceAtLeast(0); toast(if(store.toggle(entry)) "Ajouté aux favoris" else "Retiré des favoris"); renderRows(listSection); list?.setSelection(selection.coerceAtMost((shownEntries.size - 1).coerceAtLeast(0))) }
+            2 -> showGuide(entry)
+        } }.setNegativeButton("Fermer", null).show()
+    }
+    private fun showGuide(entry: Entry) {
+        if (busy) return
+        async("Chargement de l’horaire…", { Xtream(store.account() ?: error("Connecte ton compte.")).guide(entry) }) { programmes ->
+            val now = System.currentTimeMillis()
+            val upcoming = programmes.filter { it.end > now }
+            if(upcoming.isEmpty()) message("Horaire · ${entry.name}", "Le fournisseur n’a pas retourné d’horaire pour cette chaîne.")
+            else {
+                val time = java.text.SimpleDateFormat("EEE HH:mm", java.util.Locale.CANADA_FRENCH)
+                val endTime = java.text.SimpleDateFormat("HH:mm", java.util.Locale.CANADA_FRENCH)
+                AlertDialog.Builder(this).setTitle("Horaire · ${entry.name}").setItems(upcoming.map {
+                    "${if(it.isNow(now)) "EN COURS · " else ""}${time.format(java.util.Date(it.start))} – ${endTime.format(java.util.Date(it.end))}\n${it.title}"
+                }.toTypedArray()) { _, which ->
+                    val programme = upcoming[which]
+                    AlertDialog.Builder(this).setTitle(programme.title).setMessage(programme.description.ifBlank { "Aucune description fournie." })
+                        .setPositiveButton("Regarder la chaîne") { _, _ -> if(screen != "player") play(entry) }
+                        .setNegativeButton("Retour à l’horaire") { _, _ -> showGuide(entry) }.show()
+                }.setNegativeButton("Fermer", null).show()
+            }
         }
     }
     private fun chooseCategory() {
@@ -249,21 +338,36 @@ class MainActivity : Activity() {
         AlertDialog.Builder(this).setTitle("Catégories du fournisseur").setItems(options.map { it.name }.toTypedArray()) { _, which -> browse(browseTitle, browseKind, "", options[which].id.ifEmpty { null }) }.setNegativeButton("Annuler", null).show()
     }
     private fun episodes(series: Entry) {
+        seriesOrigin = captureList()
+        categories = emptyList()
         page("episodes", series.name)
         async("Chargement des épisodes…", { Xtream(store.account()!!).episodes(series) }) { entries -> items = entries; buildList(series.name, "", false) }
     }
     private fun releasePlayer() { retryTask?.let { main.removeCallbacks(it) }; retryTask = null; playerView?.player = null; player?.release(); player = null; playerView = null }
     private fun play(entry: Entry, position: Long = 0L) {
+        captureList()?.let { playerOrigin = it }
         releasePlayer(); current = entry; playbackPosition = position; audioRestored = false; retries = 0
         page("player", entry.name)
+        root.removeAllViews(); root.setPadding(0, 0, 0, 0)
+        val heading = label(entry.name, 20f, mint).apply {
+            setPadding(dp(24), dp(8), dp(24), dp(8)); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        root.addView(heading, LinearLayout.LayoutParams(-1, dp(48)))
         val video = PlayerView(this).apply { useController = true; controllerShowTimeoutMs = 5000; setShowSubtitleButton(true); setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING) }
         root.addView(video, LinearLayout.LayoutParams(-1, 0, 1f)); playerView = video
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf<Pair<String, () -> Unit>>("Audio / Son" to { audioMenu() }, "Infos" to { streamInfo() }, "★ Favori" to { toast(if(store.toggle(entry)) "Ajouté aux favoris" else "Retiré des favoris") }, "Reprendre" to { retries = 0; player?.prepare(); player?.play() }, "Retour" to { releasePlayer(); current = null; home() }).forEach { (t, f) -> row.addView(button(t, f), LinearLayout.LayoutParams(0, dp(44), 1f).apply { rightMargin = dp(6) }) }
+        val playbackActions = mutableListOf<Pair<String, () -> Unit>>("Audio / Son" to { audioMenu() }, "Infos" to { streamInfo() }, "★ Favori" to { toast(if(store.toggle(entry)) "Ajouté aux favoris" else "Retiré des favoris") }, "Reprendre" to { retryTask?.let { main.removeCallbacks(it) }; retries = 0; player?.prepare(); player?.play() })
+        if(entry.kind == "live") playbackActions.add("Horaire" to { showGuide(entry) })
+        playbackActions.add("Retour" to { leavePlayer() })
+        playbackActions.forEach { (t, f) -> row.addView(button(t, f).apply { textSize = 14f; setPadding(dp(6), 0, dp(6), 0) }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(6) }) }
         root.addView(row)
+        video.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
+            val chrome = if(visibility == View.VISIBLE || row.hasFocus()) View.VISIBLE else View.GONE
+            heading.visibility = chrome; row.visibility = chrome
+        })
         val factory = DefaultMediaSourceFactory(DefaultHttpDataSource.Factory().setUserAgent("VickTV/${BuildConfig.VERSION_NAME}").setConnectTimeoutMs(15000).setReadTimeoutMs(20000).setAllowCrossProtocolRedirects(false))
         val p = ExoPlayer.Builder(this).setMediaSourceFactory(factory).build(); player = p; video.player = p
-        p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setPreferredAudioLanguage("fr").setMaxAudioChannelCount(if(store.prefs.getBoolean("stereo", false)) 2 else Int.MAX_VALUE).build()
+        p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setPreferredAudioLanguage("fr").setMaxAudioChannelCount(if(audioMode() == "stereo") 2 else Int.MAX_VALUE).build()
         p.addListener(object : Player.Listener {
             override fun onTracksChanged(tracks: Tracks) { restoreAudio(tracks) }
             override fun onPlaybackStateChanged(state: Int) { if(state == Player.STATE_READY) retries = 0 }
@@ -285,21 +389,27 @@ class MainActivity : Activity() {
         val options = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }.flatMap { g -> (0 until g.length).filter { g.isTrackSupported(it) }.map { g to it } }
         if(options.isEmpty()) return
         val saved = store.prefs.getString("audio:$key", null)
-        val chosen = options.firstOrNull { fingerprint(it.first.getTrackFormat(it.second)) == saved }
-            ?: options.firstOrNull { val f = it.first.getTrackFormat(it.second); f.language?.startsWith("fr") == true && f.roleFlags and C.ROLE_FLAG_DESCRIBES_VIDEO == 0 && (!store.prefs.getBoolean("stereo", false) || f.channelCount == 2) }
+        val choices = options.map { (g, i) -> val f = g.getTrackFormat(i); AudioChoice(fingerprint(f), f.language, f.label, f.channelCount,
+            f.roleFlags and C.ROLE_FLAG_DESCRIBES_VIDEO != 0 || AudioRules.isDescription(f.label)) }
+        val chosen = AudioRules.choose(choices, saved, audioMode(), store.prefs.getBoolean("avoid_description", true))?.let { options[it] }
         audioRestored = true
+        if(choices.all { it.described } && store.prefs.getBoolean("avoid_description", true)) toast("Le fournisseur propose seulement des pistes avec audiodescription.")
         chosen?.let { p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setOverrideForType(TrackSelectionOverride(it.first.mediaTrackGroup, it.second)).build() }
     }
     private fun audioMenu() {
         val p = player ?: return
         val options = p.currentTracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }.flatMap { g -> (0 until g.length).map { g to it } }
         if(options.isEmpty()) { message("Audio", "Aucune piste détectée pour le moment. Attends le démarrage de la chaîne."); return }
-        val titles = options.map { (g,i) -> val f = g.getTrackFormat(i); "${if(g.isTrackSelected(i)) "✓ " else ""}${f.label ?: f.language ?: "Piste ${i+1}"} · ${f.channelCount.takeIf { it > 0 } ?: "?"} canaux · ${f.sampleMimeType ?: "audio"}${if(f.roleFlags and C.ROLE_FLAG_DESCRIBES_VIDEO != 0) " · Description" else ""}${if(!g.isTrackSupported(i)) " · non prise en charge" else ""}" }
+        val titles = options.map { (g,i) -> val f = g.getTrackFormat(i); "${if(g.isTrackSelected(i)) "✓ " else ""}${f.label ?: f.language ?: "Piste ${i+1}"} · ${f.channelCount.takeIf { it > 0 } ?: "?"} canaux · ${f.sampleMimeType ?: "audio"}${if(f.roleFlags and C.ROLE_FLAG_DESCRIBES_VIDEO != 0 || AudioRules.isDescription(f.label)) " · Description" else ""}${if(!g.isTrackSupported(i)) " · non prise en charge" else ""}" }
         AlertDialog.Builder(this).setTitle("Choisir le son").setItems(titles.toTypedArray()) { _, which ->
             val (g,i) = options[which]
             if(!g.isTrackSupported(i)) { toast("Ce format n’est pas pris en charge par cet appareil."); return@setItems }
             store.prefs.edit().putString("audio:${current!!.key}", fingerprint(g.getTrackFormat(i))).apply()
             p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setOverrideForType(TrackSelectionOverride(g.mediaTrackGroup, i)).build()
+        }.setNeutralButton("Choix automatique") { _, _ ->
+            store.prefs.edit().remove("audio:${current!!.key}").apply()
+            p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().clearOverridesOfType(C.TRACK_TYPE_AUDIO).build()
+            audioRestored = false; restoreAudio(p.currentTracks)
         }.setNegativeButton("Fermer", null).show()
     }
     private fun streamInfo() {
@@ -333,7 +443,7 @@ class MainActivity : Activity() {
         work.execute {
             val result = runCatching { task() }
             main.post {
-                if(isFinishing || isDestroyed || token != requestId) { busy = false; return@post }
+                if(isFinishing || isDestroyed || token != requestId) return@post
                 busy = false; root.removeView(progress); root.removeView(statusView)
                 result.onSuccess(success).onFailure { error ->
                     val text = when {

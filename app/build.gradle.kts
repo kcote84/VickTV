@@ -6,8 +6,8 @@ android {
         applicationId = "ca.vicktv"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
         buildConfigField("String", "UPDATE_REPOSITORY", "\"kcote84/VickTV\"")
     }
     buildFeatures { buildConfig = true }
@@ -37,4 +37,5 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-hls:1.4.1")
     implementation("androidx.media3:media3-ui:1.4.1")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

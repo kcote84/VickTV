@@ -14,21 +14,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Identifier la version à publier
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(python3 -c 'import json; print(json.load(open("distribution/update.json"))["versionName"])')"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Cette version est déjà publiée; aucun fichier n’est remplacé."
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-java@v4
+        if: steps.version.outputs.published != 'true'
         with:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        if: steps.version.outputs.published != 'true'
         with:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
       - name: Préparer le fichier distribué
+        if: steps.version.outputs.published != 'true'
         run: |
           if [ ! -f distribution/VickTV.apk ]; then
             cat distribution/apk.part??? > distribution/VickTV.apk
           fi
           sdkmanager "build-tools;35.0.0"
       - name: Vérifier le fichier distribué
+        if: steps.version.outputs.published != 'true'
         run: |
           python3 - <<'PY'
           import hashlib,json,pathlib,re
@@ -40,7 +56,10 @@ jobs:
           assert re.search(r'versionName\s*=\s*"([^"]+)"',config).group(1)==manifest['versionName']
           PY
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify distribution/VickTV.apk
+          certificate=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs distribution/VickTV.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          test "$certificate" = '6a09826ceee768d04367e205731a23a1b03a791c25b150c4cf232db2274d2e16' || { echo 'La signature diffère de la première version distribuée.'; exit 1; }
       - name: Publier les fichiers sur GitHub Releases
+        if: steps.version.outputs.published != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

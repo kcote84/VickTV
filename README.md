@@ -6,6 +6,16 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
+## Version 0.2.0
+
+La version **0.2.0 (code 2)** est signée avec la même clé que 0.1.0. Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jour** lorsque la version est disponible dans Releases.
+
+- Lecture plein écran lorsque les commandes sont masquées; Retour du lecteur vers la liste, la recherche et la sélection précédentes, sans recharger le catalogue.
+- Bouton **Options / Favoris** et touche Menu dans les listes; suppression immédiate d’un favori dans sa section.
+- Filtre **Langue : Tous / Français / Québec** dans Films et Séries, combinable avec les catégories originales. Ce classement se base sur les noms du fournisseur; il ne vérifie pas la langue des pistes ni l’origine d’une œuvre. « Canada » seul ne classe plus un contenu comme francophone.
+- **Horaire par chaîne** dans les options ou le lecteur : émission en cours, prochaines émissions et descriptions retournées par Xtream. Les heures suivent le fuseau du Fire Stick. Il ne s’agit pas encore d’une grille multichaîne ou d’un guide complet sur plusieurs jours.
+- Préférences **Automatique / Stéréo / Cinéma 5.1**. L’option **Éviter l’audiodescription** est activée par défaut : elle écarte les pistes identifiées comme descriptives si une piste normale existe, y compris si une piste descriptive avait été mémorisée. Le choix manuel reste possible; **Choix automatique** efface la préférence du contenu. Une narration non identifiée ou intégrée au seul flux ne peut pas être retirée.
+
 ## Première installation
 
 1. Télécharger **VickTV.apk** dans [Releases](https://github.com/kcote84/VickTV/releases).
@@ -50,7 +60,7 @@ Kotlin + vues Android natives + AndroidX Media3 ExoPlayer. Java 17, Android SDK 
 
 La signature release utilise `VICKTV_KEYSTORE`, `VICKTV_STORE_PASSWORD` et `VICKTV_KEY_PASSWORD`, alias `vicktv`. Le fichier de clé reste hors Git. Les builds debug servent aux essais uniquement : leur signature est différente de la release.
 
-Le premier APK signé est conservé dans `distribution/` et un workflow le copie dans GitHub Releases. Les mises à jour préparées localement peuvent suivre le même chemin, sans transmettre la clé de signature à GitHub. GitHub Actions comprend aussi la vérification des sources et une option de compilation signée. Pour activer la publication automatique, ajouter les trois secrets décrits dans [docs/DEVELOPPEMENT.md](docs/DEVELOPPEMENT.md), augmenter `versionCode` et `versionName`, puis pousser le tag correspondant.
+L’APK signé à publier est transféré en morceaux dans `distribution/` et un workflow le reconstruit dans GitHub Releases. Les mises à jour préparées localement peuvent suivre le même chemin, sans transmettre la clé de signature à GitHub. GitHub Actions comprend aussi la vérification des sources et une option de compilation signée. Pour activer la publication automatique, ajouter les trois secrets décrits dans [docs/DEVELOPPEMENT.md](docs/DEVELOPPEMENT.md), augmenter `versionCode` et `versionName`, puis pousser le tag correspondant.
 
 ## Limites du MVP
 
