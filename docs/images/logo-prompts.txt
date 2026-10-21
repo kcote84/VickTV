@@ -1,4 +1,11 @@
-Création avec l’outil intégré imagegen, 21 octobre 2026.
+Création avec l’outil intégré imagegen, 21 octobre 2026. Correction VickTv en tête; prompts initiaux de 0.4.0 plus bas.
+
+
+Correction du nom, avec l’outil intégré imagegen. Fichiers de sortie remplacés aux mêmes chemins pour intégrer la correction.
+Icône — prompt :
+Edit target: the provided square app icon. Change ONLY the lettering from 'VicTV' to the exact brand name 'VickTv' (six letters: uppercase V, lowercase i, lowercase c, lowercase k, uppercase T, lowercase v). Add the missing k and use lowercase final v. Preserve the pink retro television, cartoon opaque bustier, heart, antennas, colors, dark plum background, gloss, composition and all illustration details unchanged. Preserve the same rounded white type with pink edging and heart dot over i. Keep the full corrected word centered and comfortably inside the bottom margins, reduce lettering slightly if needed. No other changes, no extra text. Output the complete corrected square icon.
+Bannière — prompt :
+Edit target: the provided landscape Fire TV app banner. Correct ONLY its wordmark from 'VicTV' to exactly 'VickTv' (six letters: V i c k T v; initial V and T uppercase, final v lowercase). Preserve the same friendly rounded white lettering, pink edging, heart dot over i, pink retro television with opaque cartoon bustier, every illustration detail, background glow, dark plum palette, image dimensions and layout. Keep the mascot on the left unchanged. Fit the corrected word inside the right half by reducing its size slightly if necessary with generous right margin. No extra text and no other visual changes. Return the complete corrected banner.
 
 Icône : app/src/main/res/drawable-nodpi/victv_icon_art.png
 Prompt :
