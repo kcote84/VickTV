@@ -59,15 +59,13 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     private val title: TextView
     private val description: TextView
     private val clock: TextView
-    private val notice: TextView
     private val categoryButton: Button
     private val searchButton: Button
-    private val favouriteButton: Button
     private val filters = mutableMapOf<String, Button>()
     private val ticker = object : Runnable {
         override fun run() {
             if (!active) return
-            updateNotice()
+            updateClock()
             if (grid.windowStart + GuideWindow.SPAN <= System.currentTimeMillis()) grid.now()
             grid.refresh(); loadVisible(); main.postDelayed(this, 60000)
         }
@@ -122,22 +120,14 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
             else -> "Chargement de l’horaire…"
         } }
         grid.onSelection = { selection(); loadVisible() }
-        grid.onWindow = { updateNotice() }
+        grid.onWindow = { updateClock() }
         grid.onOpen = { entry, programme -> open(entry, programme) }
         grid.onFavourite = { options() }
         view.addView(grid, LinearLayout.LayoutParams(-1, 0, 1f))
-        val actions = row(42)
-        add(actions, button("← Plus tôt") { grid.shift(-1); grid.requestFocus() })
-        add(actions, button("Maintenant") { grid.now(); grid.requestFocus() })
-        add(actions, button("Plus tard →") { grid.shift(1); grid.requestFocus() })
-        favouriteButton = button("☆ Favori") { toggleFavourite() }; add(actions, favouriteButton)
-        notice = text(12f, muted)
-        view.addView(notice, LinearLayout.LayoutParams(-1, dp(22)))
         for (i in 0 until tools.childCount) tools.getChildAt(i).nextFocusDownId = grid.id
-        for (i in 0 until actions.childCount) actions.getChildAt(i).nextFocusUpId = grid.id
         grid.nextFocusUpId = filters.getValue("Français").id
-        grid.nextFocusDownId = actions.getChildAt(1).id
-        updateNotice()
+        grid.nextFocusDownId = grid.id
+        updateClock()
     }
     fun resume(channelId: String? = null) {
         active = true
@@ -198,7 +188,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         filters.forEach { (label, b) -> b.isSelected = label == filter && category.isEmpty(); b.background = shape(panel, b.isSelected) }
         categoryButton.text = if(category.isEmpty()) "Catégories" else "Catégorie ✓"
         searchButton.text = if(query.isBlank()) "Rechercher" else "Recherche ✓"
-        grid.setChannels(shown, focusId); focusId = null; updateNotice()
+        grid.setChannels(shown, focusId); focusId = null; updateClock()
     }
     private fun loadVisible() {
         if (!active || all.isEmpty()) return
@@ -230,10 +220,8 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         description.text = p?.let {
             "${time.format(Date(it.start))} – ${time.format(Date(it.end))} · ${if(it.isNow(now)) "En cours" else if(it.start > now) "À venir" else "Terminé"} · ${it.description.ifBlank { "OK pour les détails" }}"
         } ?: if(entry == null) "Choisis Toutes, change de catégorie ou efface la recherche." else grid.status(entry)
-        favouriteButton.text = if(entry?.let { isFavourite(it) } == true) "★ Favori" else "☆ Ajouter favori"
     }
-    private fun updateNotice() {
-        notice.setText(if(account == null) R.string.guide_hint_demo else R.string.guide_hint)
+    private fun updateClock() {
         clock.text = date.format(Date(grid.windowStart))
     }
     private fun toggleFavourite() {

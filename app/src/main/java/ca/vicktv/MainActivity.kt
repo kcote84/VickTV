@@ -140,29 +140,57 @@ class MainActivity : Activity() {
     private fun home() {
         playerOrigin = null; seriesOrigin = null; returnToGuide = false
         page("home", "Ta soirée, tout simplement.")
-        root.addView(label("Qu’est-ce qu’on regarde ?", 26f).apply { setTypeface(null, Typeface.BOLD) })
-        if (store.account() == null) root.addView(label("Bienvenue ! Connecte ton compte ou explore le mode démo.", 16f, muted))
-        val guide = button("Guide TV   ·   Ce qui joue maintenant et plus tard") { openTvGuide() }.apply { textSize = 20f }
-        root.addView(guide, LinearLayout.LayoutParams(-1, dp(62)).apply { setMargins(0, dp(8), dp(12), 0) })
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false }
-        val sections = listOf("Français" to "CHAÎNES FRANCOPHONES", "Sports" to "LE DIRECT, EN GRAND", "Films" to "SOIRÉE CINÉMA", "Séries" to "ENCORE UN ÉPISODE")
-        sections.forEach { (title, detail) ->
-            val b = button("$title\n\n$detail") {
-                if (store.account() == null) demo(title) else browse(title, when(title) { "Films" -> "vod"; "Séries" -> "series"; else -> "live" }, title)
-            }.apply { textSize = 17f }
-            row.addView(b, LinearLayout.LayoutParams(0, dp(100), 1f).apply { setMargins(0, dp(10), dp(12), dp(10)) })
+        if (store.account() == null) root.addView(label("Mode démo · Connecte ton compte dans Réglages.", 14f, muted))
+        fun addTile(row: LinearLayout, tile: View, weight: Float = 1f) {
+            row.addView(tile, LinearLayout.LayoutParams(0, -1, weight).apply {
+                if(row.childCount > 0) leftMargin = dp(12)
+            })
         }
-        root.addView(row)
+        val primary = LinearLayout(this).apply { isBaselineAligned = false }
+        val guide = homeTile("Guide TV", R.drawable.home_guide, true) { openTvGuide() }
+        addTile(primary, guide, 2f)
+        addTile(primary, homeTile("Favoris", R.drawable.home_favourites) { if(store.account() == null) demo("Favoris") else favourites() })
+        addTile(primary, homeTile("Direct", R.drawable.home_live) { if(store.account() == null) demo("Toutes les chaînes") else browse("Toutes les chaînes", "live", "") })
+        root.addView(primary, LinearLayout.LayoutParams(-1, 0, 1.1f).apply { topMargin = dp(12); bottomMargin = dp(12) })
+        val catalogue = LinearLayout(this).apply { isBaselineAligned = false }
+        listOf("Films" to R.drawable.home_films, "Séries" to R.drawable.home_series,
+            "Français" to R.drawable.home_french, "Sports" to R.drawable.home_sports).forEach { (title, icon) ->
+            addTile(catalogue, homeTile(title, icon) {
+                if(store.account() == null) demo(title) else browse(title, when(title) { "Films" -> "vod"; "Séries" -> "series"; else -> "live" }, title)
+            })
+        }
+        root.addView(catalogue, LinearLayout.LayoutParams(-1, 0, 1f))
         val footer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf<Pair<String, () -> Unit>>(
-            "★ Favoris" to { if (store.account() == null) demo("Favoris") else favourites() },
-            "Toutes les chaînes" to { if (store.account() == null) demo("Toutes les chaînes") else browse("Toutes les chaînes", "live", "") },
-            "Adultes 18+" to { adults() },
-            "Réglages" to { settings() }
-        ).forEach { (t, f) -> footer.addView(button(t, f), LinearLayout.LayoutParams(0, dp(50), 1f).apply { rightMargin = dp(12) }) }
-        root.addView(footer)
-        root.addView(label("Flèches pour naviguer  ·  OK pour choisir  ·  Retour pour revenir", 12f, muted))
+        addTile(footer, button("Adultes 18+") { adults() })
+        addTile(footer, button("Réglages") { settings() })
+        root.addView(footer, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(16) })
         guide.requestFocus()
+    }
+    private fun homeTile(title: String, iconId: Int, prominent: Boolean = false, action: () -> Unit): View = LinearLayout(this).apply {
+        id = View.generateViewId(); orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+        isFocusable = true; isClickable = true; defaultFocusHighlightEnabled = false
+        contentDescription = title; importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+        accessibilityDelegate = object : View.AccessibilityDelegate() {
+            override fun onInitializeAccessibilityNodeInfo(host: View, info: android.view.accessibility.AccessibilityNodeInfo) {
+                super.onInitializeAccessibilityNodeInfo(host, info); info.className = Button::class.java.name
+            }
+        }
+        setPadding(dp(18), dp(12), dp(18), dp(12))
+        val icon = getDrawable(iconId)!!.mutate().apply { setTint(accent) }
+        addView(ImageView(this@MainActivity).apply {
+            setImageDrawable(icon); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }, LinearLayout.LayoutParams(dp(if(prominent) 42 else 32), dp(if(prominent) 42 else 32)))
+        val caption = label(title, if(prominent) 27f else 21f).apply {
+            setTypeface(null, Typeface.BOLD); setSingleLine(); ellipsize = android.text.TextUtils.TruncateAt.END
+            setPadding(0, 0, 0, 0); gravity = Gravity.CENTER; importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+        addView(caption, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
+        setOnFocusChangeListener { _, focused ->
+            background = shape(if(focused) accent else panel, if(focused) null else TvTheme.live)
+            caption.setTextColor(if(focused) bg else Color.WHITE); icon.setTint(if(focused) bg else accent)
+        }
+        background = shape(panel, TvTheme.live)
+        setOnClickListener { action() }
     }
     private fun adults() {
         if (store.account() == null) { demo("Adultes 18+"); return }

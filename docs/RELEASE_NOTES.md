@@ -1,7 +1,7 @@
-# VickTv 0.4.2
+# VickTv 0.4.3
 
-- En cas d’erreur de lecture HTTP, affichage du numéro précis (403, 404, etc.) et d’une explication, sans exposer le lien ni les identifiants du compte.
-- En HLS, bouton « Passer en MPEG-TS » pour reprendre la chaîne et conserver ce format pour le direct.
-- Les refus d’accès et ressources absentes (401, 403, 404, 410) sont signalés sans trois reconnexions inutiles.
-- Cette version facilite le diagnostic : elle ne garantit ni le HLS chez le fournisseur ni une autre piste audio sur Zeste.
+- Accueil simplifié : gros boutons avec icônes et libellés courts. Guide TV, Favoris et Direct en premier; Films, Séries, Français et Sports juste en dessous.
+- Guide TV agrandi : retrait de la barre de boutons du bas et de sa ligne de raccourcis.
+- Gauche/droite parcourt toujours l’horaire. Menu permet d’ajouter ou retirer un favori et de revenir à maintenant; « ? Aide » explique les commandes.
+- Adultes 18+ et Réglages restent accessibles à l’accueil. Réglages audio, diagnostic HTTP et mises à jour conservés.
 - Même paquet et même clé de signature : mise à jour sur place, sans désinstallation.
