@@ -6,9 +6,13 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.5.0
+## Version 0.5.1
 
-La version **0.5.0 (code 9)** garde une bordure de sécurité autour des boutons : **5 %**, ou **8 %** dans **Réglages → Bordure TV** pour une télé qui rogne davantage l’image.
+La version **0.5.1 (code 10)** masque les anciennes chaînes et affiche une roue rose pendant les changements d’onglet du guide. Le filtrage travaille en arrière-plan; les clics rapides gardent le dernier choix. La roue apparaît aussi pendant le chargement initial du catalogue. Les horaires se complètent ensuite dans la grille. Les favoris et le compte sont conservés lors d’une mise à jour sur place.
+
+[Aperçu de la transition de chargement](docs/images/guide-chargement.png).
+
+La bordure de sécurité autour des boutons reste de **5 %**, ou **8 %** dans **Réglages → Bordure TV** pour une télé qui rogne davantage l’image.
 
 Le guide commence par **★ Favoris**. Le raccourci **Québec** du guide et de l’accueil sélectionne les chaînes locales francophones reconnues; **Direct** et **Toutes** conservent le catalogue complet.
 

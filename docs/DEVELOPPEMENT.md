@@ -519,3 +519,17 @@ La mise à jour signée conserve le compte fictif et son favori. La hiérarchie 
 La [PR nº 8](https://github.com/kcote84/VickTV/pull/8) est fusionnée au commit `0fbec6008f4cfd8d84e02d29960055d0e1793109`, après réussite du contrôle Android [39692142757](https://github.com/kcote84/VickTV/actions/runs/39692142757). Le workflow de publication [39692352870](https://github.com/kcote84/VickTV/actions/runs/39692352870) réussit et crée [v0.5.0](https://github.com/kcote84/VickTV/releases/tag/v0.5.0).
 
 APK public : **6 975 347 octets**, SHA-256 `9e59e1bc8ab0eee6be0ff8a6ab82b5cfb9828701e32ca2cb9dc152397033d7ae`. Le manifeste stable, les liens APK latest/versionné et SHA256SUMS sont téléchargés sans authentification. Le manifeste correspond à celui préparé (code 9), et les deux téléchargements sont identiques à l’APK signé testé. `apksigner` confirme de nouveau le certificat initial sur le fichier public. Aucune désinstallation nécessaire pour passer de la version précédente à cette version avec la même signature.
+
+## 24. Transition de chargement du guide — 0.5.1
+
+Retour utilisateur : passer de Favoris à Québec laisse les anciennes chaînes visibles pendant un gel apparent. Le filtrage parcourait tout le catalogue sur le thread UI, avec une recherche de catégorie linéaire par chaîne et une lecture répétée des favoris. Une roue ajoutée autour de ce travail synchrone n’aurait pas pu s’animer.
+
+`GuideFilters` travaille désormais sur un exécuteur distinct des horaires et du thread UI. Chaque requête reçoit des instantanés des chaînes, catégories indexées par ID et favoris. Dès le choix d’un onglet, le guide masque la grille, efface les détails précédents et affiche une roue rose centrée avec « Chargement des chaînes… ». Les onglets restent utilisables. La grille réapparaît lorsque le filtrage est terminé, puis les horaires se complètent comme avant; aucune attente de tous les horaires n’est imposée.
+
+Les expressions régulières de normalisation et du tri Québec sont compilées une seule fois au lieu d’être recréées pour chaque chaîne; leurs critères sont inchangés et couverts par les tests existants.
+
+Une nouvelle sélection annule le filtrage précédent; la boucle vérifie les interruptions. Un numéro de requête et la génération de l’écran empêchent un résultat ancien de remplacer le dernier choix. Sortir du guide annule le travail; le retour relance la sélection courante. La roue couvre aussi le chargement initial/réactualisé du catalogue et se ferme sur une erreur, avec le dialogue Réessayer habituel. Les boutons choisis pendant le chargement initial ne sont plus remplacés par le défaut Favoris à la réception du catalogue.
+
+Aucun changement au format ou aux clés de stockage des favoris, du compte et des préférences. La conservation lors d’une installation par-dessus la version précédente devient une consigne explicite dans AGENTS. Version **0.5.1 / code 10**, paquet et signature initiaux.
+
+`testDebugUnitTest lintDebug assembleRelease` : **33 tests réussis**, aucun échec; lint sans erreur, neuf avertissements. Les quatre nouveaux tests vérifient les résultats et l’absence de mutation lors des changements de filtre, les recherches combinées, les favoris vides et l’interruption d’un filtrage obsolète. Aucun diagnostic temporaire de laboratoire n’est livré; seul le nom de classe d’une erreur de catalogue est journalisé, sans message, URL ou identifiants.

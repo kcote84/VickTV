@@ -12,12 +12,15 @@ import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.Future
+import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -34,6 +37,10 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     private val tickets = mutableMapOf<String, Int>()
     private var nextTicket = 0
     private var catalogue: Future<*>? = null
+    private val filterWorker = Executors.newSingleThreadExecutor()
+    private var filterTask: Future<*>? = null
+    private var filterRequest = 0
+    private var filtering = false
     private var active = false
     private var generation = 0
     private var all = emptyList<Entry>()
@@ -42,7 +49,6 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     private var category = ""
     private var query = ""
     private var focusId: String? = null
-    private var initialFilter = true
     private var loadedAt = 0L
     private data class Cached(val programmes: List<Programme>, val loaded: Long, val failed: Boolean)
     private val cache = object : LinkedHashMap<String, Cached>(96, .75f, true) {
@@ -61,6 +67,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     private val clock: TextView
     private val categoryButton: Button
     private val searchButton: Button
+    private val loading = LinearLayout(activity)
     private val filters = mutableMapOf<String, Button>()
     private val ticker = object : Runnable {
         override fun run() {
@@ -123,7 +130,23 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         grid.onWindow = { updateClock() }
         grid.onOpen = { entry, programme -> open(entry, programme) }
         grid.onFavourite = { options() }
-        view.addView(grid, LinearLayout.LayoutParams(-1, 0, 1f))
+        val content = FrameLayout(activity)
+        content.addView(grid, FrameLayout.LayoutParams(-1, -1))
+        loading.apply {
+            id = View.generateViewId(); orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+            isFocusable = true; visibility = View.GONE
+            nextFocusUpId = filters.getValue("★ Favoris").id
+            addView(ProgressBar(activity).apply {
+                isIndeterminate = true
+                indeterminateTintList = android.content.res.ColorStateList.valueOf(accent)
+            }, LinearLayout.LayoutParams(dp(48), dp(48)))
+            addView(text(16f, muted).apply {
+                setText(R.string.guide_loading); gravity = Gravity.CENTER
+                accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+            }, LinearLayout.LayoutParams(-2, dp(46)))
+        }
+        content.addView(loading, FrameLayout.LayoutParams(-1, -1))
+        view.addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
         for (i in 0 until tools.childCount) tools.getChildAt(i).nextFocusDownId = grid.id
         grid.nextFocusUpId = filters.getValue("★ Favoris").id
         grid.nextFocusDownId = grid.id
@@ -140,13 +163,16 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     }
     fun pause() {
         active = false; generation++; main.removeCallbacks(ticker)
+        filterRequest++; filterTask?.cancel(true); filterTask = null
         catalogue?.cancel(true); catalogue = null
         pending.values.forEach { it.cancel(true) }; pending.clear(); tickets.clear(); pool.purge()
     }
-    fun close() { pause(); pool.shutdownNow(); main.removeCallbacksAndMessages(null) }
+    fun close() { pause(); pool.shutdownNow(); filterWorker.shutdownNow(); main.removeCallbacksAndMessages(null) }
     private fun isFavourite(entry: Entry) = if (account == null) entry.key in demoFavourites else entry.key in store.favourites()
     private fun loadCatalogue() {
         if (!active || catalogue != null) return
+        filterRequest++; filterTask?.cancel(true); filterTask = null
+        showLoading(true)
         heading.setText(if(account == null) R.string.guide_demo_label else R.string.guide_tagline)
         title.setText(R.string.guide_loading); description.setText(R.string.guide_loading_hint)
         val token = generation
@@ -157,11 +183,10 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
                 catalogue = null
                 result.onSuccess { (cats, entries) ->
                     categories = cats; all = entries; loadedAt = System.currentTimeMillis()
-                    if (initialFilter) {
-                        filter = if(focusId != null) "Toutes" else "★ Favoris"; initialFilter = false
-                    }
                     applyFilters()
                 }.onFailure {
+                    android.util.Log.w("VickTvGuide", "Catalogue: ${it.javaClass.simpleName}")
+                    grid.setChannels(emptyList()); showLoading(false)
                     title.setText(R.string.guide_connection_failed)
                     description.setText(R.string.guide_connection_retry)
                     AlertDialog.Builder(activity).setTitle("Connexion au guide").setMessage("Le fournisseur ne répond pas. Tes favoris et tes réglages sont conservés.")
@@ -171,23 +196,51 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         }
     }
     private fun categoryName(e: Entry) = categories.firstOrNull { it.id == e.category }?.name.orEmpty()
-    private fun applyFilters() {
-        val terms = CatalogRules.normalize(query)
-        val shown = all.filter { e ->
-            (category.isEmpty() || e.category == category) && when(filter) {
-                "★ Favoris" -> isFavourite(e)
-                "Québec" -> CatalogRules.isQuebecLive(categoryName(e), e.name)
-                "Adultes" -> CatalogRules.isAdult(categoryName(e), e.name, e.adult)
-                else -> true
-            } && (terms.isEmpty() || CatalogRules.normalize("${e.name} ${e.number} ${categoryName(e)}").contains(terms))
+    private fun showLoading(value: Boolean) {
+        val wasFocused = grid.hasFocus()
+        filtering = value
+        grid.visibility = if(value) View.INVISIBLE else View.VISIBLE
+        loading.visibility = if(value) View.VISIBLE else View.GONE
+        if(value) {
+            heading.text = filter
+            title.setText(R.string.guide_loading); description.setText(R.string.guide_loading_hint)
+            if(wasFocused) loading.requestFocus()
         }
+    }
+    private fun applyFilters() {
+        if(!active) return
+        val request = ++filterRequest
+        filterTask?.cancel(true); filterTask = null
+        pending.values.forEach { it.cancel(true) }; pending.clear(); tickets.clear(); pool.purge()
+        showLoading(true)
         filters.forEach { (label, b) -> b.isSelected = label == filter && category.isEmpty(); b.background = shape(panel, b.isSelected) }
         categoryButton.text = if(category.isEmpty()) "Catégories" else "Catégorie ✓"
         searchButton.text = if(query.isBlank()) "Rechercher" else "Recherche ✓"
-        grid.setChannels(shown, focusId); focusId = null; updateClock()
+        if(catalogue != null) return
+        val token = generation
+        val entries = all; val names = categories.associate { it.id to it.name }
+        val selectedFilter = filter; val selectedCategory = category; val terms = query
+        val favourites = if(account == null) demoFavourites.toSet() else store.favourites()
+        filterTask = filterWorker.submit {
+            val result = runCatching { GuideFilters.select(entries, names, favourites, selectedFilter, selectedCategory, terms) }
+            if(Thread.currentThread().isInterrupted) return@submit
+            main.post {
+                if(!active || generation != token || filterRequest != request) return@post
+                filterTask = null
+                result.onSuccess { shown ->
+                    val restoreFocus = loading.hasFocus() || categoryButton.hasFocus() || searchButton.hasFocus() || filters.values.any { it.hasFocus() }
+                    grid.setChannels(shown, focusId); focusId = null
+                    showLoading(false); selection(); updateClock(); loadVisible()
+                    if(restoreFocus) grid.requestFocus()
+                }.onFailure {
+                    grid.setChannels(emptyList()); showLoading(false)
+                    title.setText(R.string.guide_connection_failed); description.setText(R.string.guide_connection_retry)
+                }
+            }
+        }
     }
     private fun loadVisible() {
-        if (!active || all.isEmpty()) return
+        if (!active || filtering || all.isEmpty()) return
         val visible = grid.visible().map { it.id }.toSet()
         pending.keys.filter { it !in visible }.toList().forEach { pending.remove(it)?.cancel(true); tickets.remove(it) }; pool.purge()
         grid.visible().forEach { entry ->
@@ -210,6 +263,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         }
     }
     private fun selection() {
+        if(filtering) return
         val entry = grid.selectedEntry(); val p = grid.selectedProgramme(); val now = System.currentTimeMillis()
         heading.text = if(account == null) "DÉMO · EXEMPLE D’HORAIRE" else entry?.let { "${it.name}  ·  ${categoryName(it)}" } ?: "GUIDE TV"
         title.text = p?.title ?: if (entry == null) "Aucune chaîne dans cette sélection" else entry.name
