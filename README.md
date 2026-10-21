@@ -6,10 +6,11 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.2.0
+## Version 0.2.1
 
-La version **0.2.0 (code 2)** est signée avec la même clé que 0.1.0. Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jour** lorsque la version est disponible dans Releases.
+La version **0.2.1 (code 3)** est signée avec la même clé que 0.1.0. Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jour** lorsque la version est disponible dans Releases.
 
+- APK de mise à jour conservé dans le stockage privé, hors cache, pour résister aux purges du système en cas de manque d’espace.
 - Lecture plein écran lorsque les commandes sont masquées; Retour du lecteur vers la liste, la recherche et la sélection précédentes, sans recharger le catalogue.
 - Bouton **Options / Favoris** et touche Menu dans les listes; suppression immédiate d’un favori dans sa section.
 - Filtre **Langue : Tous / Français / Québec** dans Films et Séries, combinable avec les catégories originales. Ce classement se base sur les noms du fournisseur; il ne vérifie pas la langue des pistes ni l’origine d’une œuvre. « Canada » seul ne classe plus un contenu comme francophone.

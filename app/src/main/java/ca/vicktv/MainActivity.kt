@@ -429,6 +429,12 @@ class MainActivity : Activity() {
     }
     private fun installUpdate() {
         val file = pendingInstall ?: return
+        if(!file.isFile) {
+            pendingInstall = null
+            settings()
+            message("Téléchargement à reprendre", "Le fichier de mise à jour n’est plus disponible. Choisis Vérifier les mises à jour pour le télécharger de nouveau.")
+            return
+        }
         val updater = Updater(this)
         if(!updater.canInstall()) AlertDialog.Builder(this).setTitle("Autoriser la mise à jour")
             .setMessage("Autorise VickTV à installer des applications. Reviens ensuite dans Réglages et choisis Installer la mise à jour téléchargée.")

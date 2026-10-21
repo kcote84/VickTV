@@ -25,7 +25,9 @@ class Updater(private val activity: Activity) {
     }
     @Suppress("DEPRECATION")
     fun download(update: Update): File {
-        val dir = File(activity.cacheDir, "updates").apply { mkdirs() }
+        // Android may purge cache while the user enables installation or the installer starts.
+        // Keep the one staged APK in private files until the next download replaces it.
+        val dir = File(activity.filesDir, "updates").apply { mkdirs() }
         val partial = File(dir, "download.part")
         val target = File(dir, "vicktv.apk")
         val c = Network.connection(update.url)
@@ -50,6 +52,7 @@ class Updater(private val activity: Activity) {
         } finally { c.disconnect(); partial.delete() }
     }
     fun install(file: File) {
+        require(file.isFile && file.length() > 0) { "Le fichier de mise à jour doit être téléchargé de nouveau." }
         val uri = FileProvider.getUriForFile(activity, "${activity.packageName}.files", file)
         activity.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
