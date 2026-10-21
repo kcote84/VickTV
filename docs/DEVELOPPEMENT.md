@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version préparée : **0.5.0**, `versionCode = 9`, bordure TV, favoris et galeries (section 23). Dernière version distribuée confirmée : **0.4.3**, `versionCode = 8`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée confirmée : **0.5.0**, `versionCode = 9`, bordure TV, favoris et galeries (section 23). Version précédente : **0.4.3**, `versionCode = 8`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -511,3 +511,11 @@ Films et Séries utilisent un GridView à six colonnes (cinq sur écran étroit)
 Version **0.5.0 / code 9**, même paquet et certificat initial. `testDebugUnitTest lintDebug assembleRelease` : 29 tests réussis, aucun échec; lint sans erreur, neuf avertissements. Les six nouveaux tests portent sur les règles Québec/français et le parsing/validation des pochettes. Aucun nouveau compte ni clé dans Git. La consultation des métadonnées Edge ne lit aucun flux vidéo et son fichier d’accès temporaire est supprimé.
 
 Les essais d’interface utilisent uniquement un compte et un fournisseur fictifs locaux, des affiches marquées DÉMO et une vidéo synthétique. Favoris en premier (vide puis ajout), galeries et images de remplacement, absence de filtres, navigation D-pad et bascule des marges 5/8 % sont vérifiés sur émulateur API 35. Les captures documentent ces contenus fictifs. Le rendu HDMI et l’overscan réel des deux Fire Stick restent à confirmer par le propriétaire. Aucun changement des règles audio ou du flux de Zeste dans cette évolution.
+
+La mise à jour signée conserve le compte fictif et son favori. La hiérarchie Android mesure la surface vidéo à **0,0–1920,1080** avec commandes affichées comme masquées. Le retour lecteur → épisodes → galerie conserve la recherche « train » et la série sélectionnée. Le menu Lecture centré, les choix de vitesse, les sous-titres désactivés et la sélection automatique de la piste française normale sont vérifiés sur le flux synthétique. La sélection d’une vraie piste de sous-titres et la restitution audio HDMI restent hors de ces essais. L’émulateur et le serveur fictif sont arrêtés ensuite; les accès temporaires et copies de signature sont supprimés.
+
+### Publication 0.5.0
+
+La [PR nº 8](https://github.com/kcote84/VickTV/pull/8) est fusionnée au commit `0fbec6008f4cfd8d84e02d29960055d0e1793109`, après réussite du contrôle Android [39692142757](https://github.com/kcote84/VickTV/actions/runs/39692142757). Le workflow de publication [39692352870](https://github.com/kcote84/VickTV/actions/runs/39692352870) réussit et crée [v0.5.0](https://github.com/kcote84/VickTV/releases/tag/v0.5.0).
+
+APK public : **6 975 347 octets**, SHA-256 `9e59e1bc8ab0eee6be0ff8a6ab82b5cfb9828701e32ca2cb9dc152397033d7ae`. Le manifeste stable, les liens APK latest/versionné et SHA256SUMS sont téléchargés sans authentification. Le manifeste correspond à celui préparé (code 9), et les deux téléchargements sont identiques à l’APK signé testé. `apksigner` confirme de nouveau le certificat initial sur le fichier public. Aucune désinstallation nécessaire pour passer de la version précédente à cette version avec la même signature.
