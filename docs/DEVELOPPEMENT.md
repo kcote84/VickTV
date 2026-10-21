@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.2.0**, `versionCode = 2`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections 3 et 10 décrivent l’état initial; les sections 12 et 13 suivent la révision et la livraison 0.2.0.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.2.1**, `versionCode = 3`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections 3 et 10 décrivent l’état initial; les sections 12 et 13 suivent la révision et la livraison 0.2.0.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -300,3 +300,15 @@ La distinction entre stockage persistant et cache purgeable est décrite dans la
 Pour reproduire une mise à jour avant de publier le correctif, les mêmes sources sont compilées en APK de laboratoire avec un script Gradle d’initialisation hors Git : seul le numéro de version est abaissé à 1 (`0.1.0-probe`), avec la clé originale. Cet APK télécharge le véritable APK public 0.2.0, le valide, attend l’autorisation de la source; une purge `adb shell pm trim-caches 1G` est ensuite exécutée. Après autorisation, le fichier reste accessible et l’installateur propose bien « Do you want to update this app? ». L’APK de laboratoire n’est pas distribué.
 
 La production est recompilée sans script d’initialisation : paquet `ca.vicktv`, **0.2.1 (code 3)**, non débogable. `testDebugUnitTest lintDebug assembleRelease` et `apksigner verify --verbose` réussissent. Certificat initial inchangé. APK : **4 319 603 octets**, SHA-256 `2cf284cd9615299ebcb7f0924cf708830d6ae76d0ba49e7aaae92b4c882edd39`. Les 15 morceaux et le manifeste de distribution sont remplacés et vérifiés. La version 0.2.0 reste archivée; la publication 0.2.1 est suivie ci-dessous. Le test de l’installateur dépasse maintenant le point de défaillance : la confirmation de mise à jour est affichée, puis l’image émulateur Google Play demande un scan Play Protect. Ce scan supplémentaire n’a pas été lancé et aucune protection n’a été contournée. Le passage à l’APK de production 0.2.1 est vérifié séparément par `adb install -r`. Le parcours Fire OS reste à confirmer sur appareil.
+
+### Publication du correctif
+
+La PR nº 2 est fusionnée au commit `3c8cce1386d610b8a81e1690391c9046bb06fa61`. La CI du correctif [39658303887](https://github.com/kcote84/VickTV/actions/runs/39658303887) a réussi, puis le workflow de publication [39658680986](https://github.com/kcote84/VickTV/actions/runs/39658680986) a créé la release [v0.2.1](https://github.com/kcote84/VickTV/releases/tag/v0.2.1). Cette version remplace 0.2.0 comme version stable proposée par le manifeste.
+
+Le ZIP privé original est conservé chez le propriétaire; les copies extraites de travail ont été supprimées. Aucun fichier de clé ou de mots de passe n’est suivi par Git ni intégré aux APK. Les outils et APK de laboratoire restent hors du dépôt.
+
+Le contrôle Android des sources finales sur `main` [39658680980](https://github.com/kcote84/VickTV/actions/runs/39658680980) est également réussi.
+
+Le manifeste stable et l’APK 0.2.1 ont été téléchargés sans authentification après publication : code 3, 4 319 603 octets, SHA-256 conforme à la distribution et signature v2 valide. Les APK 0.1.0 et 0.2.0 utilisent encore l’ancien stockage en cache pour leur propre parcours de mise à jour : si ce premier passage échoue faute de fichier, installer manuellement l’APK 0.2.1 par-dessus la version existante, sans désinstaller. Le nouveau stockage privé s’appliquera aux téléchargements des mises à jour suivantes.
+
+Prochaine validation matérielle : installer 0.2.1 sur un seul Fire Stick, connecter Edge, vérifier direct/film/épisode, guide et favoris, puis écouter les chaînes problématiques avec les différentes pistes stéréo/5.1. Aucun essai Fire OS ni restitution HDMI réelle n’est revendiqué par ces tests sur émulateur.
