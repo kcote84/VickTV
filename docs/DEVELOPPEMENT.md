@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version distribuée confirmée : **0.5.0**, `versionCode = 9`, bordure TV, favoris et galeries (section 23). Version précédente : **0.4.3**, `versionCode = 8`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée : **0.5.1**, `versionCode = 10`, transitions du guide en arrière-plan (section 24). Version précédente : **0.5.0**, `versionCode = 9`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -533,3 +533,11 @@ Une nouvelle sélection annule le filtrage précédent; la boucle vérifie les i
 Aucun changement au format ou aux clés de stockage des favoris, du compte et des préférences. La conservation lors d’une installation par-dessus la version précédente devient une consigne explicite dans AGENTS. Version **0.5.1 / code 10**, paquet et signature initiaux.
 
 `testDebugUnitTest lintDebug assembleRelease` : **33 tests réussis**, aucun échec; lint sans erreur, neuf avertissements. Les quatre nouveaux tests vérifient les résultats et l’absence de mutation lors des changements de filtre, les recherches combinées, les favoris vides et l’interruption d’un filtrage obsolète. Aucun diagnostic temporaire de laboratoire n’est livré; seul le nom de classe d’une erreur de catalogue est journalisé, sans message, URL ou identifiants.
+
+Validation avec l’APK signé sur émulateur API 35 : favori Télé-Québec et compte fictif présents avant l’installation sur 0.5.0, puis retrouvés dans la section Favoris et le guide après mise à jour. Un catalogue fictif de **40 016 chaînes** confirme la roue à la place des anciennes lignes, le dernier choix après Québec → Toutes → Favoris, **13 345 résultats Québec**, la navigation et le retour à l’accueil pendant un filtrage. La capture `docs/images/guide-chargement.png` provient du véritable APK. Les premières grosses réponses du serveur fictif étaient coupées dans le transport local; les servir par blocs a permis le test sans modifier le réseau de l’application. Aucun essai sur Fire Stick ou flux Edge. Émulateur et serveur fictif arrêtés, copies extraites de signature supprimées; archive privée initiale conservée.
+
+### Publication 0.5.1
+
+La [PR nº 9](https://github.com/kcote84/VickTV/pull/9) est fusionnée au commit `3be13a205b17c0d104d4341ca4701a27637b3f05`, après réussite du contrôle Android [39695401943](https://github.com/kcote84/VickTV/actions/runs/39695401943). Le workflow de publication [39695696080](https://github.com/kcote84/VickTV/actions/runs/39695696080) réussit et crée [v0.5.1](https://github.com/kcote84/VickTV/releases/tag/v0.5.1).
+
+APK public : **6 977 535 octets**, SHA-256 `aeebcf7258ebfafad4a535a3591ee30cf68516327cf14ff64d8c7826abde8252`. Le manifeste stable (code 10), SHA256SUMS et les deux liens APK latest/versionné sont téléchargés sans authentification. Les APK sont identiques au fichier signé testé; `apksigner` confirme le certificat initial sur le fichier public. Le paquet reste ca.vicktv, sans mode débogable; les 24 morceaux de distribution se reconstruisent à l’identique.
