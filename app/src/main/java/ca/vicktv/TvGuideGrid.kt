@@ -35,8 +35,8 @@ class TvGuideGrid(context: Context) : View(context) {
     private fun px(n: Float) = n * density
     private val ink = TextPaint(Paint.ANTI_ALIAS_FLAG)
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val mint = Color.rgb(100, 224, 180)
-    private val muted = Color.rgb(166, 184, 194)
+    private val accent = TvTheme.accent
+    private val muted = TvTheme.muted
     private val clock = SimpleDateFormat("HH:mm", Locale.CANADA_FRENCH)
     private val dateScratch = Date(0)
     private val rectangle = RectF()
@@ -143,10 +143,10 @@ class TvGuideGrid(context: Context) : View(context) {
         visible().forEachIndexed { row, entry ->
             val top = header + row * rowHeight; val bottom = top + rowHeight - px(4f)
             val active = first + row == selected
-            fill.color = if (active) Color.rgb(39, 70, 73) else Color.rgb(26, 42, 53)
+            fill.color = if (active) TvTheme.selectedChannel else TvTheme.row
             rounded(c, 0f, top, column - px(5f), bottom)
             val ordinal = entry.number.takeIf { it > 0 } ?: (first + row + 1)
-            text(c, "${if(favourite(entry)) "★ " else ""}$ordinal", px(10f), top + rowHeight * .34f, column - px(20f), 11f, mint, true)
+            text(c, "${if(favourite(entry)) "★ " else ""}$ordinal", px(10f), top + rowHeight * .34f, column - px(20f), 11f, accent, true)
             text(c, entry.name, px(10f), top + rowHeight * .73f, column - px(20f), 16f, Color.WHITE, active)
             slots(entry).forEach { slot ->
                 val left = column + timeline * (slot.start - windowStart).toFloat() / GuideWindow.SPAN
@@ -155,10 +155,10 @@ class TvGuideGrid(context: Context) : View(context) {
                 val focused = active && cursor >= slot.start && cursor < slot.end
                 val live = slot.programme?.isNow(System.currentTimeMillis()) == true
                 fill.style = Paint.Style.FILL
-                fill.color = when { focused && hasFocus() -> Color.rgb(47, 92, 87); live -> Color.rgb(28, 61, 63); else -> Color.rgb(30, 46, 57) }
+                fill.color = when { focused && hasFocus() -> TvTheme.selected; live -> TvTheme.live; else -> TvTheme.panel }
                 rounded(c, left, top, right, bottom)
                 if (focused) {
-                    fill.style = Paint.Style.STROKE; fill.strokeWidth = px(if(hasFocus()) 2.5f else 1f); fill.color = if(hasFocus()) mint else muted
+                    fill.style = Paint.Style.STROKE; fill.strokeWidth = px(if(hasFocus()) 2.5f else 1f); fill.color = if(hasFocus()) accent else muted
                     rounded(c, left + px(1.5f), top + px(1.5f), right - px(1.5f), bottom - px(1.5f)); fill.style = Paint.Style.FILL
                 }
                 text(c, slot.programme?.title ?: status(entry), left + px(10f), top + rowHeight * .43f, right - left - px(18f), 16f, if(slot.programme != null) Color.WHITE else muted, focused)
@@ -168,7 +168,7 @@ class TvGuideGrid(context: Context) : View(context) {
         val now = System.currentTimeMillis()
         if (now >= windowStart && now < windowStart + GuideWindow.SPAN) {
             val x = column + timeline * (now - windowStart).toFloat() / GuideWindow.SPAN
-            fill.color = mint; fill.strokeWidth = px(1f); c.drawLine(x, header, x, header + rowHeight * minOf(5, channels.size), fill)
+            fill.color = accent; fill.strokeWidth = px(1f); c.drawLine(x, header, x, header + rowHeight * minOf(5, channels.size), fill)
         }
     }
 }

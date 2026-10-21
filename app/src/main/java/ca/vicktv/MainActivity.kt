@@ -64,10 +64,10 @@ class MainActivity : Activity() {
     private var seriesOrigin: ListState? = null
     private var guideScreen: TvGuideScreen? = null
     private var returnToGuide = false
-    private val bg = Color.rgb(16, 26, 34)
-    private val panel = Color.rgb(30, 46, 57)
-    private val mint = Color.rgb(100, 224, 180)
-    private val muted = Color.rgb(166, 184, 194)
+    private val bg = TvTheme.background
+    private val panel = TvTheme.panel
+    private val accent = TvTheme.accent
+    private val muted = TvTheme.muted
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,7 +119,7 @@ class MainActivity : Activity() {
         text = title; textSize = 16f; isAllCaps = false; setTextColor(Color.WHITE); gravity = Gravity.CENTER
         minHeight = dp(48); setPadding(dp(18), dp(8), dp(18), dp(8)); background = shape(panel)
         defaultFocusHighlightEnabled = false
-        setOnFocusChangeListener { _, focus -> background = shape(if (focus) mint else panel); setTextColor(if (focus) bg else Color.WHITE) }
+        setOnFocusChangeListener { _, focus -> background = shape(if (focus) accent else panel); setTextColor(if (focus) bg else Color.WHITE) }
         setOnClickListener { action() }
     }
     private fun addButton(parent: LinearLayout, title: String, action: () -> Unit) = button(title, action).also {
@@ -131,7 +131,7 @@ class MainActivity : Activity() {
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(34), dp(18), dp(34), dp(14)); setBackgroundColor(bg) }
         setContentView(root)
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        header.addView(label("VickTV", 28f, mint).apply { setTypeface(null, Typeface.BOLD) }, LinearLayout.LayoutParams(0, dp(48), 1f))
+        header.addView(label("VicTV", 28f, accent).apply { setTypeface(null, Typeface.BOLD) }, LinearLayout.LayoutParams(0, dp(48), 1f))
         header.addView(label("POUR VICKY, AVEC AMOUR", 12f, muted))
         root.addView(header)
         root.addView(label(subtitle, 16f, muted))
@@ -157,11 +157,19 @@ class MainActivity : Activity() {
         listOf<Pair<String, () -> Unit>>(
             "★ Favoris" to { if (store.account() == null) demo("Favoris") else favourites() },
             "Toutes les chaînes" to { if (store.account() == null) demo("Toutes les chaînes") else browse("Toutes les chaînes", "live", "") },
+            "Adultes 18+" to { adults() },
             "Réglages" to { settings() }
         ).forEach { (t, f) -> footer.addView(button(t, f), LinearLayout.LayoutParams(0, dp(50), 1f).apply { rightMargin = dp(12) }) }
         root.addView(footer)
         root.addView(label("Flèches pour naviguer  ·  OK pour choisir  ·  Retour pour revenir", 12f, muted))
         guide.requestFocus()
+    }
+    private fun adults() {
+        if (store.account() == null) { demo("Adultes 18+"); return }
+        AlertDialog.Builder(this).setTitle("Adultes 18+")
+            .setItems(arrayOf("Chaînes en direct", "Films", "Séries")) { _, choice ->
+                browse("Adultes · ${listOf("Chaînes", "Films", "Séries")[choice]}", listOf("live", "vod", "series")[choice], "Adultes")
+            }.setNegativeButton("Retour", null).show()
     }
     private fun openTvGuide(channelId: String? = null) {
         releasePlayer(); current = null
@@ -185,7 +193,7 @@ class MainActivity : Activity() {
     private fun demo(section: String) {
         page("demo", "$section · Mode démo")
         root.addView(label("Ton espace $section", 28f))
-        root.addView(label("Les vrais contenus apparaîtront après la connexion à ton compte Xtream.\nAucune chaîne n’est fournie avec VickTV.", 18f, muted))
+        root.addView(label("Les vrais contenus apparaîtront après la connexion à ton compte Xtream.\nAucune chaîne n’est fournie avec VicTV.", 18f, muted))
         addButton(root, "Connecter mon compte Xtream") { login() }
         addButton(root, "Retour à l’accueil") { home() }
     }
@@ -289,7 +297,7 @@ class MainActivity : Activity() {
         val query = CatalogRules.normalize(search?.text.toString())
         val names = categories.associate { it.id to it.name }
         val favourites = store.favourites()
-        val shown = items.filter { (section != "Favoris" || it.key in favourites) && CatalogRules.matches(section, names[it.category] ?: "", it.name) &&
+        val shown = items.filter { (section != "Favoris" || it.key in favourites) && CatalogRules.matches(section, names[it.category] ?: "", it.name, it.adult) &&
             (!listFilters || CatalogRules.matches(languageFilter, names[it.category] ?: "", it.name)) && CatalogRules.normalize(it.name).contains(query) }
         shownEntries = shown
         val labels = shown.map { "${if(it.key in favourites) "★  " else ""}${it.name}\n${names[it.category] ?: when(it.kind) { "live" -> "Chaîne en direct"; "vod" -> "Film"; "series" -> "Série"; else -> "Épisode" }}" }
@@ -297,8 +305,8 @@ class MainActivity : Activity() {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View = (super.getView(position, convertView, parent) as TextView).apply {
                 textSize = 18f; setTextColor(Color.WHITE); setPadding(dp(16), dp(8), dp(16), dp(8)); minHeight = dp(68)
                 background = android.graphics.drawable.StateListDrawable().apply {
-                    addState(intArrayOf(android.R.attr.state_selected), shape(Color.rgb(43,105,88), mint))
-                    addState(intArrayOf(android.R.attr.state_pressed), shape(Color.rgb(43,105,88), mint))
+                    addState(intArrayOf(android.R.attr.state_selected), shape(TvTheme.selected, accent))
+                    addState(intArrayOf(android.R.attr.state_pressed), shape(TvTheme.selected, accent))
                     addState(intArrayOf(), shape(panel))
                 }
             }
@@ -336,7 +344,7 @@ class MainActivity : Activity() {
     }
     private fun chooseCategory() {
         val options = listOf(Category("", "Toutes les catégories")) + categories
-        AlertDialog.Builder(this).setTitle("Catégories du fournisseur").setItems(options.map { it.name }.toTypedArray()) { _, which -> browse(browseTitle, browseKind, "", options[which].id.ifEmpty { null }) }.setNegativeButton("Annuler", null).show()
+        AlertDialog.Builder(this).setTitle("Catégories du fournisseur").setItems(options.map { it.name }.toTypedArray()) { _, which -> browse(browseTitle, browseKind, if(browseSection == "Adultes") "Adultes" else "", options[which].id.ifEmpty { null }) }.setNegativeButton("Annuler", null).show()
     }
     private fun episodes(series: Entry) {
         seriesOrigin = captureList()
@@ -350,7 +358,7 @@ class MainActivity : Activity() {
         releasePlayer(); current = entry; playbackPosition = position; audioRestored = false; retries = 0
         page("player", entry.name)
         root.removeAllViews(); root.setPadding(0, 0, 0, 0)
-        val heading = label(entry.name, 20f, mint).apply {
+        val heading = label(entry.name, 20f, accent).apply {
             setPadding(dp(24), dp(8), dp(24), dp(8)); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
         }
         root.addView(heading, LinearLayout.LayoutParams(-1, dp(48)))
@@ -366,7 +374,7 @@ class MainActivity : Activity() {
             val chrome = if(visibility == View.VISIBLE || row.hasFocus()) View.VISIBLE else View.GONE
             heading.visibility = chrome; row.visibility = chrome
         })
-        val factory = DefaultMediaSourceFactory(DefaultHttpDataSource.Factory().setUserAgent("VickTV/${BuildConfig.VERSION_NAME}").setConnectTimeoutMs(15000).setReadTimeoutMs(20000).setAllowCrossProtocolRedirects(false))
+        val factory = DefaultMediaSourceFactory(DefaultHttpDataSource.Factory().setUserAgent("VicTV/${BuildConfig.VERSION_NAME}").setConnectTimeoutMs(15000).setReadTimeoutMs(20000).setAllowCrossProtocolRedirects(false))
         val p = ExoPlayer.Builder(this).setMediaSourceFactory(factory).build(); player = p; video.player = p
         p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setPreferredAudioLanguage("fr").setMaxAudioChannelCount(if(audioMode() == "stereo") 2 else Int.MAX_VALUE).build()
         p.addListener(object : Player.Listener {
@@ -422,8 +430,8 @@ class MainActivity : Activity() {
         if(busy) return
         val updater = Updater(this)
         async("Recherche d’une mise à jour…", { updater.check() }) { update ->
-            if(update == null) message("VickTV ${BuildConfig.VERSION_NAME}", "Tu as la dernière version publiée.")
-            else AlertDialog.Builder(this).setTitle("VickTV ${update.version}").setMessage(update.notes).setNegativeButton("Plus tard", null).setPositiveButton("Télécharger") { _, _ ->
+            if(update == null) message("VicTV ${BuildConfig.VERSION_NAME}", "Tu as la dernière version publiée.")
+            else AlertDialog.Builder(this).setTitle("VicTV ${update.version}").setMessage(update.notes).setNegativeButton("Plus tard", null).setPositiveButton("Télécharger") { _, _ ->
                 async("Téléchargement et vérification…", { updater.download(update) }) { file -> pendingInstall = file; installUpdate() }
             }.show()
         }
@@ -438,8 +446,8 @@ class MainActivity : Activity() {
         }
         val updater = Updater(this)
         if(!updater.canInstall()) AlertDialog.Builder(this).setTitle("Autoriser la mise à jour")
-            .setMessage("Autorise VickTV à installer des applications. Reviens ensuite dans Réglages et choisis Installer la mise à jour téléchargée.")
-            .setNegativeButton("Plus tard", null).setPositiveButton("Ouvrir les réglages") { _, _ -> runCatching { updater.requestPermission() }.onFailure { message("Autorisation", "Va dans Ma Fire TV → Options développeur → Installer des applications inconnues, puis autorise VickTV.") } }.show()
+            .setMessage("Autorise VicTV à installer des applications. Reviens ensuite dans Réglages et choisis Installer la mise à jour téléchargée.")
+            .setNegativeButton("Plus tard", null).setPositiveButton("Ouvrir les réglages") { _, _ -> runCatching { updater.requestPermission() }.onFailure { message("Autorisation", "Va dans Ma Fire TV → Options développeur → Installer des applications inconnues, puis autorise VicTV.") } }.show()
         else runCatching { updater.install(file) }.onFailure { message("Installation", "L’installateur n’a pas pu s’ouvrir sur cet appareil.") }
     }
     private fun <T> async(status: String, task: () -> T, success: (T) -> Unit) {
@@ -460,7 +468,7 @@ class MainActivity : Activity() {
                         error is java.io.IOException -> "Connexion impossible. Vérifie Internet et le serveur. Pour une mise à jour, vérifie qu’une release GitHub existe."
                         else -> error.message?.takeIf { !it.contains("http") && !it.contains("password") } ?: "L’opération n’a pas pu être terminée."
                     }
-                    message("VickTV", text)
+                    message("VicTV", text)
                     if(screen == "browse" || screen == "episodes") addButton(root, "Retour à l’accueil") { home() }
                 }
             }

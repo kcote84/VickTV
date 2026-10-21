@@ -1,12 +1,11 @@
-# VickTV 0.3.0
+# VicTV 0.4.0
 
-- Nouveau Guide TV dès l’accueil : grille multichaîne, cinq chaînes visibles, deux heures à l’écran et jusqu’à douze heures à venir selon l’horaire reçu.
-- Navigation à la télécommande : haut/bas pour les chaînes, gauche/droite pour les émissions, OK pour regarder ou lire les détails. Sélection visible, grands caractères et repère de l’heure actuelle.
-- Français, Favoris, toutes les chaînes, catégories et recherche par nom ou numéro. Ajout et retrait immédiat des favoris dans le guide.
-- Retour du lecteur conservant la chaîne, le filtre et la position dans le guide. Bouton Guide TV dans le lecteur et les options des chaînes.
-- Aide simple en trois gestes; Menu donne accès aux favoris, aux filtres, à la recherche et à Maintenant depuis chaque chaîne.
-- Chargement progressif des horaires avec cache en mémoire. Repli vers l’horaire court si le guide complet n’est pas disponible; prise en charge des timestamps en secondes/millisecondes et des dates du fuseau déclaré par le serveur.
-- Les horaires absents ou en erreur sont indiqués sans empêcher de regarder la chaîne. Les émissions futures ne sont pas présentées comme du rattrapage.
-- Guide de démonstration sans compte, avec émissions fictives identifiées. Aucun flux ni abonnement inclus.
+- Thème rose bonbon et prune sur l’accueil, le guide, les listes, les contrôles de lecture et les éléments Android. Focus contrasté et caractères lisibles conservés.
+- Nouveau logo cartoon VicTV : télévision rétro rose, clin d’œil humoristique à une poitrine en bustier et petit cœur. Icône et bannière intégrées au lanceur Android/Fire TV.
+- Section Adultes 18+ à l’accueil pour les chaînes, films et séries du fournisseur; filtre Adultes dans le guide et ses options à la télécommande.
+- Reconnaissance du marquage Xtream `is_adult`, des catégories et des noms explicites. Les simples titres Adult Swim ou Sex Education ne sont pas classés par leur nom comme pornographiques. Le classement reste dépendant du fournisseur.
+- Choisir une catégorie dans la section Adultes garde le filtre Adultes. Favoris, recherche et filtres de langue restent disponibles.
 
-Les contrôles audio et la mise à jour GitHub de 0.2.1 sont conservés. APK signé avec la clé originale, mise à jour sur place sans désinstallation. Validation sur émulateur Android avec serveur Xtream synthétique; Edge, télécommande Fire TV et sortie HDMI 5.1 restent à vérifier sur les appareils réels.
+Le guide multichaîne, l’aide, les réglages audio et la mise à jour GitHub sont conservés. Même paquet `ca.vicktv`, même clé originale, version 0.4.0 / code 5. Les noms du dépôt et du fichier distribué restent VickTV pour assurer la continuité des mises à jour.
+
+Les captures proviennent d’un émulateur Android au format TV; aucune validation Edge, Fire OS ou HDMI 5.1 sur matériel réel n’est revendiquée. Aucun contenu ni abonnement fourni. Adultes 18+ est un regroupement du catalogue, pas un verrou parental.

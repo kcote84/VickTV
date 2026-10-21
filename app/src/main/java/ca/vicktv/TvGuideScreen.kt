@@ -49,10 +49,10 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Cached>?) = size > 96
     }
     private val demoFavourites = mutableSetOf<String>()
-    private val bg = Color.rgb(16, 26, 34)
-    private val panel = Color.rgb(30, 46, 57)
-    private val mint = Color.rgb(100, 224, 180)
-    private val muted = Color.rgb(166, 184, 194)
+    private val bg = TvTheme.background
+    private val panel = TvTheme.panel
+    private val accent = TvTheme.accent
+    private val muted = TvTheme.muted
     private val time = SimpleDateFormat("HH:mm", Locale.CANADA_FRENCH)
     private val date = SimpleDateFormat("EEE d MMM · HH:mm", Locale.CANADA_FRENCH)
     private val heading: TextView
@@ -77,7 +77,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         textSize = size; setTextColor(color); maxLines = 1; ellipsize = TextUtils.TruncateAt.END; gravity = Gravity.CENTER_VERTICAL
     }
     private fun shape(color: Int, border: Boolean = false) = GradientDrawable().apply {
-        setColor(color); cornerRadius = dp(8).toFloat(); if(border) setStroke(dp(2), mint)
+        setColor(color); cornerRadius = dp(8).toFloat(); if(border) setStroke(dp(2), accent)
     }
     private fun button(label: String, action: () -> Unit) = Button(activity).apply {
         id = View.generateViewId(); text = label; textSize = 14f; isAllCaps = false
@@ -85,7 +85,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         setPadding(dp(8), 0, dp(8), 0); setTextColor(Color.WHITE); background = shape(panel)
         defaultFocusHighlightEnabled = false
         setOnFocusChangeListener { _, focused ->
-            background = shape(if(focused) mint else panel, isSelected)
+            background = shape(if(focused) accent else panel, isSelected)
             setTextColor(if(focused) bg else Color.WHITE)
         }
         setOnClickListener { action() }
@@ -97,10 +97,10 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     init {
         view.orientation = LinearLayout.VERTICAL; view.setBackgroundColor(bg); view.setPadding(dp(24), dp(12), dp(24), dp(10))
         val top = row(42)
-        top.addView(text(27f, mint).apply { setText(R.string.guide_title); setTypeface(null, Typeface.BOLD) }, LinearLayout.LayoutParams(0, -1, 1f))
+        top.addView(text(27f, accent).apply { setText(R.string.guide_title); setTypeface(null, Typeface.BOLD) }, LinearLayout.LayoutParams(0, -1, 1f))
         clock = text(14f, muted).apply { text = date.format(Date()) }; top.addView(clock)
         val tools = row(46)
-        listOf("Français", "★ Favoris", "Toutes").forEach { label ->
+        listOf("Français", "★ Favoris", "Toutes", "Adultes").forEach { label ->
             val b = button(label) { filter = label; category = ""; applyFilters(); grid.requestFocus() }
             filters[label] = b; add(tools, b)
         }
@@ -108,7 +108,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         searchButton = button("Rechercher") { search() }; add(tools, searchButton, 1.15f)
         add(tools, button("? Aide") { help() }, .75f)
         val detail = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(2), dp(5), 0, dp(4)) }
-        heading = text(12f, mint); title = text(22f).apply { setTypeface(null, Typeface.BOLD) }; description = text(14f, muted)
+        heading = text(12f, accent); title = text(22f).apply { setTypeface(null, Typeface.BOLD) }; description = text(14f, muted)
         detail.addView(heading, LinearLayout.LayoutParams(-1, dp(20)))
         detail.addView(title, LinearLayout.LayoutParams(-1, dp(30)))
         detail.addView(description, LinearLayout.LayoutParams(-1, dp(24)))
@@ -191,6 +191,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
             (category.isEmpty() || e.category == category) && when(filter) {
                 "★ Favoris" -> isFavourite(e)
                 "Français" -> CatalogRules.matches("Français", categoryName(e), e.name)
+                "Adultes" -> CatalogRules.isAdult(categoryName(e), e.name, e.adult)
                 else -> true
             } && (terms.isEmpty() || CatalogRules.normalize("${e.name} ${e.number} ${categoryName(e)}").contains(terms))
         }
@@ -255,14 +256,14 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     }
     private fun options() {
         val entry = grid.selectedEntry() ?: return
-        AlertDialog.Builder(activity).setTitle(entry.name).setItems(arrayOf("Regarder la chaîne en direct", "Détails de l’émission", if(isFavourite(entry)) "★ Retirer des favoris" else "☆ Ajouter aux favoris", "Revenir à maintenant", "Français / Favoris / Toutes", "Choisir une catégorie", "Rechercher une chaîne", "Comment utiliser le guide")) { _, which ->
+        AlertDialog.Builder(activity).setTitle(entry.name).setItems(arrayOf("Regarder la chaîne en direct", "Détails de l’émission", if(isFavourite(entry)) "★ Retirer des favoris" else "☆ Ajouter aux favoris", "Revenir à maintenant", "Choisir les chaînes affichées", "Choisir une catégorie", "Rechercher une chaîne", "Comment utiliser le guide")) { _, which ->
             when(which) {
                 0 -> play(entry)
                 1 -> grid.selectedProgramme()?.let { details(entry, it) }
                 2 -> toggleFavourite()
                 3 -> grid.now()
-                4 -> AlertDialog.Builder(activity).setTitle("Quelles chaînes ?").setItems(arrayOf("Français", "★ Favoris", "Toutes")) { _, i ->
-                    filter = listOf("Français", "★ Favoris", "Toutes")[i]; category = ""; applyFilters(); grid.requestFocus()
+                4 -> AlertDialog.Builder(activity).setTitle("Quelles chaînes ?").setItems(arrayOf("Français", "★ Favoris", "Toutes", "Adultes")) { _, i ->
+                    filter = listOf("Français", "★ Favoris", "Toutes", "Adultes")[i]; category = ""; applyFilters(); grid.requestFocus()
                 }.setNegativeButton("Retour", null).show()
                 5 -> chooseCategory()
                 6 -> search()
