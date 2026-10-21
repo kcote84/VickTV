@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.4.2**, `versionCode = 7`, diagnostic HTTP et retour MPEG-TS (section 19). Version précédente : **0.4.1**, `versionCode = 6`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.4.3**, `versionCode = 8`, accueil épuré et guide agrandi (section 20). Version précédente : **0.4.2**, `versionCode = 7`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -458,7 +458,7 @@ L’accueil affiche neuf actions : Guide TV, Favoris et Direct dans la première
 
 `TvGuideScreen` n’a plus de bouton Favori ni de notice en bas; l’horloge est actualisée indépendamment. À la dernière chaîne, Bas garde le focus dans la grille au lieu de chercher un bouton supprimé. Haut à la première chaîne retrouve les filtres; les filtres restent aussi accessibles quand la sélection est vide. Aucun changement audio, réseau, signature, données de compte ou mécanisme de mise à jour.
 
-Version préparée : **0.4.3 / code 8**. Build `testDebugUnitTest lintDebug assembleRelease` réussi : **23 tests**, zéro échec, lint sans erreur (8 avertissements existants). `apksigner verify --verbose` confirme le certificat initial et `aapt dump badging` confirme VickTv, ca.vicktv, version/code attendus, sans mode débogable. Aucun nouveau test unitaire qui recopierait la disposition; la vérification de l’interface et du focus se fait sur émulateur avec l’APK signé.
+Version publiée : **0.4.3 / code 8**. Build `testDebugUnitTest lintDebug assembleRelease` réussi : **23 tests**, zéro échec, lint sans erreur (8 avertissements existants). `apksigner verify --verbose` confirme le certificat initial et `aapt dump badging` confirme VickTv, ca.vicktv, version/code attendus, sans mode débogable. Aucun nouveau test unitaire qui recopierait la disposition; la vérification de l’interface et du focus se fait sur émulateur avec l’APK signé.
 
 APK final : **6 965 063 octets**, SHA-256 `0f411da6fb5ce48565c79ae171ec74ea31154a931508584499cd64ffe3109aaf`. Les 24 morceaux sont remplacés et reconstruits à l’identique; manifeste et SHA256SUMS concordent. Les copies extraites de signature sont supprimées et le ZIP privé d’origine reste hors dépôt.
 
@@ -467,3 +467,11 @@ APK final installé sur émulateur API 35 par-dessus 0.4.2 : les neuf actions de
 Les tuiles de l’accueil regroupent l’icône et le texte au centre d’un seul contrôle cliquable/focalisable, annoncé comme bouton avec son libellé. Les éléments décoratifs internes ne prennent pas le focus. L’image de l’accueil provient du véritable APK signé : `docs/images/home-vicktv-simple.png`. Le guide de démonstration fictif est capturé séparément dans `docs/images/guide-tv-simple.png`.
 
 Après validation de la conservation du compte/favori, seules les données fictives de l’émulateur sont réinitialisées pour capturer le mode démo. Depuis Favoris vide, Haut rejoint Français et OK rétablit les chaînes; ? Aide ouvre toujours les trois gestes. Les deux captures sont inspectées visuellement. L’appareil de laboratoire et le serveur synthétique sont arrêtés à la fin des essais. Aucune donnée d’un Fire Stick réel n’a été modifiée.
+
+La touche OK est aussi vérifiée sur les nouvelles tuiles Guide TV et Films : elle ouvre la bonne destination. Les essais attendent la fin complète du démarrage Android (`sys.boot_completed=1`) afin que les transitions du système ne relancent pas un message d’accueil pendant les commandes; aucun correctif applicatif supplémentaire n’a été nécessaire.
+
+### Publication 0.4.3
+
+La [PR nº 7](https://github.com/kcote84/VickTV/pull/7) est fusionnée au commit `ac96499ade691b855d26ba65663b82f1cbb2ea63`, après réussite du contrôle Android [39685168596](https://github.com/kcote84/VickTV/actions/runs/39685168596). Le workflow de publication [39685589098](https://github.com/kcote84/VickTV/actions/runs/39685589098) réussit et crée la release [v0.4.3](https://github.com/kcote84/VickTV/releases/tag/v0.4.3) avec APK, manifeste et SHA256SUMS.
+
+Le manifeste stable, les liens APK latest/versionné et SHA256SUMS sont téléchargés sans authentification. Le manifeste correspond à celui préparé (code 8); les APK sont identiques au fichier signé testé (6 965 063 octets), empreinte conforme et certificat initial à nouveau vérifié par apksigner sur le fichier public. Les sources, captures et notes décrivent la version distribuée. L’installation réelle et le rendu sur les Fire Stick restent à vérifier par le propriétaire.
