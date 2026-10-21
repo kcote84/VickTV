@@ -1,5 +1,7 @@
-# VickTV 0.2.0
+# VickTV 0.2.1
 
+- Mise à jour plus fiable quand le stockage est presque plein : le fichier téléchargé est conservé hors du cache que le système peut effacer avant l’installation.
+- Si le fichier n’est plus disponible, une invitation à le télécharger de nouveau remplace l’erreur de l’installateur.
 - Lecture plein écran lorsque les commandes sont masquées; titre et boutons réapparaissent avec les commandes.
 - Retour vers la liste et la recherche précédentes après lecture; retour des épisodes vers leur liste d’origine.
 - Bouton visible pour les favoris et les options de la chaîne; retrait immédiat dans Favoris.

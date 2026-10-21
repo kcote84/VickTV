@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.1.0**, `versionCode = 1`. Les sources de la branche de révision préparent **0.2.0**, `versionCode = 2`, sans nouvel APK de production publié.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.2.0**, `versionCode = 2`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections 3 et 10 décrivent l’état initial; les sections 12 et 13 suivent la révision et la livraison 0.2.0.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -271,7 +271,7 @@ Le certificat public initial vérifié depuis l’APK téléchargé est `6a09826
 
 Retirer les mentions provisoires « en préparation / non publié » des notes au moment de la publication. Retrouver la sauvegarde de la clé initiale, compiler 0.2.0 avec cette clé, exécuter `apksigner verify`, puis préparer la distribution et tester la mise à jour sur un seul Fire Stick. `distribution/` conserve les fichiers historiques 0.1.0; ne pas les publier comme 0.2.0. Une grille EPG multichaîne, les affiches/synopsis VOD et la reprise persistante restent des améliorations distinctes.
 
-## 13. Préparation de la distribution 0.2.0 avec la clé originale
+## 13. Distribution 0.2.0 avec la clé originale
 
 La sauvegarde privée fournie par le propriétaire a été récupérée hors Git. Le certificat de la clé a été exporté en mémoire et comparé au SHA-256 initial : correspondance exacte. Les mots de passe sont chargés dans l’environnement du seul processus de compilation; aucun secret n’est ajouté à GitHub.
 
@@ -281,4 +281,22 @@ Les 15 morceaux de `distribution/` sont remplacés intégralement et leur concat
 
 La mise à jour signée a été testée sur émulateur Android API 35 : installation de l’APK public 0.1.0, connexion à un compte Xtream synthétique local, désactivation des messages et ajout d’un favori, puis `adb install -r` de 0.2.0. L’installation réussit sans désinstallation : compte, réglage et favori sont conservés. Ce scénario prouve la compatibilité de signature et des données sur émulateur; il ne valide pas le parcours d’installation Fire OS.
 
-La publication GitHub et le contrôle du bouton de mise à jour restent à terminer. Les essais Fire Stick et Edge demeurent requis.
+La PR nº 1 a été fusionnée dans `main` au commit `f4a0fef7443461235f0af803871c770d70301bb9`. Le workflow de publication [39656017084](https://github.com/kcote84/VickTV/actions/runs/39656017084) et le contrôle Android sur `main` [39656017143](https://github.com/kcote84/VickTV/actions/runs/39656017143) ont réussi.
+
+La release [v0.2.0](https://github.com/kcote84/VickTV/releases/tag/v0.2.0) contient `VickTV.apk`, `update.json` et `SHA256SUMS.txt`. Le manifeste `releases/latest/download/update.json` propose bien le code 2. L’APK a été téléchargé sans authentification, son empreinte et sa signature sont conformes.
+
+Le bouton de mise à jour du véritable APK 0.1.0 détecte 0.2.0. Une première tentative de téléchargement sur émulateur a retourné une erreur réseau générique; la seconde a téléchargé et validé l’APK puis affiché la demande d’autorisation d’installation. La cause de la première erreur réseau n’a pas été établie; ne pas présenter le téléchargement comme infaillible. Le contrôle du parcours de l’installateur Android est suivi ci-dessous. Les essais Fire Stick et Edge demeurent requis.
+
+En cas de régression sur un appareil : conserver les données, retirer la release défectueuse de la sélection stable si nécessaire, puis préparer un correctif avec un `versionCode` supérieur et la même clé. La version 0.1.0 reste archivée, mais son code inférieur ne permet pas un retour automatique sur place depuis 0.2.0.
+
+## 14. Correctif 0.2.1 — protection du fichier d’installation
+
+Le test complet de l’installateur de 0.1.0 vers 0.2.0 a trouvé un défaut supplémentaire : après le téléchargement validé et l’autorisation de la source, `InstallStaging` ne trouve plus `content://ca.vicktv.files/updates/vicktv.apk` (`ENOENT`). L’émulateur est à 95 % d’occupation, avec environ 327 Mio libres; les journaux `installd` montrent des purges de cache répétées visant environ 594 Mio libres. L’APK de mise à jour était stocké dans le cache privé, qui peut être supprimé par Android pendant cette attente. L’APK lui-même reste valide et s’installe sur place par `adb install -r`.
+
+La version 0.2.1 (code 3) conserve le seul APK préparé dans `filesDir/updates`, et `FileProvider` expose uniquement ce sous-dossier privé avec une permission de lecture temporaire. Un fichier manquant demande un nouveau téléchargement au lieu d’ouvrir un installateur voué à échouer. Il ne s’agit pas d’un élargissement d’accès au reste des fichiers privés. Un seul APK est conservé et remplacé au prochain téléchargement.
+
+La distinction entre stockage persistant et cache purgeable est décrite dans la [documentation Android](https://developer.android.com/training/data-storage/app-specific#internal-remove-cache).
+
+Pour reproduire une mise à jour avant de publier le correctif, les mêmes sources sont compilées en APK de laboratoire avec un script Gradle d’initialisation hors Git : seul le numéro de version est abaissé à 1 (`0.1.0-probe`), avec la clé originale. Cet APK télécharge le véritable APK public 0.2.0, le valide, attend l’autorisation de la source; une purge `adb shell pm trim-caches 1G` est ensuite exécutée. Après autorisation, le fichier reste accessible et l’installateur propose bien « Do you want to update this app? ». L’APK de laboratoire n’est pas distribué.
+
+La production est recompilée sans script d’initialisation : paquet `ca.vicktv`, **0.2.1 (code 3)**, non débogable. `testDebugUnitTest lintDebug assembleRelease` et `apksigner verify --verbose` réussissent. Certificat initial inchangé. APK : **4 319 603 octets**, SHA-256 `2cf284cd9615299ebcb7f0924cf708830d6ae76d0ba49e7aaae92b4c882edd39`. Les 15 morceaux et le manifeste de distribution sont remplacés et vérifiés. La version 0.2.0 reste archivée; la publication 0.2.1 est suivie ci-dessous. Le test de l’installateur dépasse maintenant le point de défaillance : la confirmation de mise à jour est affichée, puis l’image émulateur Google Play demande un scan Play Protect. Ce scan supplémentaire n’a pas été lancé et aucune protection n’a été contournée. Le passage à l’APK de production 0.2.1 est vérifié séparément par `adb install -r`. Le parcours Fire OS reste à confirmer sur appareil.
