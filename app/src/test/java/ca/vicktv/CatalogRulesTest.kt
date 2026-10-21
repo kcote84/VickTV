@@ -6,6 +6,10 @@ class CatalogRulesTest {
         assertTrue(CatalogRules.matches("Français", "Québec", "TVA"))
         assertTrue(CatalogRules.matches("Français", "FR | Généralistes", "France 2"))
         assertFalse(CatalogRules.matches("Français", "USA", "Fresh movies"))
+        assertFalse(CatalogRules.matches("Français", "Canada | English", "CTV"))
+        assertTrue(CatalogRules.matches("Français", "Films VFQ", "Titre"))
+        assertTrue(CatalogRules.matches("Québec", "Séries québécoises", "Titre"))
+        assertFalse(CatalogRules.matches("Québec", "France", "Titre français"))
     }
     @Test fun sportsAndOrdinaryChannels() {
         assertTrue(CatalogRules.matches("Sports", "Canada", "RDS 2"))

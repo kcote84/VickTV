@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version de référence : **0.1.0**, `versionCode = 1`.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.1.0**, `versionCode = 1`. Les sources de la branche de révision préparent **0.2.0**, `versionCode = 2`, sans nouvel APK de production publié.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -239,3 +239,34 @@ Après ces essais, corriger les problèmes bloquants de lecture, audio ou naviga
 | 2026-10-21 | Accord de Kev, passage en public appliqué après vérification GitHub Mobile; téléchargements anonymes et SHA-256 vérifiés | Maintenir cette référence; essais sur Fire Stick et mise à jour sur place encore à faire |
 
 À chaque séance, ajouter uniquement les changements significatifs et leurs validations. Pour un résultat matériel, consigner version de l’app, appareil/OS, scénario, résultat et prochaine action, sans identifiants ni URL authentifiées.
+
+## 12. Révision du 21 octobre — sources 0.2.0 en préparation
+
+### Constats et corrections
+
+| Priorité | Constat dans 0.1.0 | Correction dans les sources 0.2.0 |
+| --- | --- | --- |
+| Haute | Sans piste française normale admissible, la sélection automatique pouvait conserver une piste descriptive; une ancienne préférence descriptive passait aussi en premier | `AudioRules` classe explicitement les pistes prises en charge. L’évitement des pistes descriptives, activé par défaut, passe avant la préférence mémorisée. À défaut de français normal, une autre langue normale reste préférable à la narration. |
+| Haute | Le lecteur renvoyait à l’accueil; quitter un épisode perdait le contexte | Sauvegarde en mémoire des listes, filtres, recherche et sélection. Retour sans nouvel appel catalogue. La pile n’est pas persistée après destruction du processus. |
+| Moyenne | L’en-tête et les boutons réduisaient la vidéo en permanence | Titre compact et boutons masqués avec les commandes du lecteur, vidéo occupant tout l’espace; les boutons restent visibles lorsqu’ils ont le focus. |
+| Moyenne | Retirer un favori dans Favoris laissait la ligne à l’écran | Filtrage par ensemble de favoris courant; bouton d’options visible, accès par touche Menu. |
+| Moyenne | Aucun accès à l’horaire des émissions | `get_short_epg`, limite demandée de 24 entrées; décodage Base64, tri, exclusion des heures incohérentes, émission courante et descriptions. Le fournisseur peut retourner moins d’entrées ou aucun guide. Pas de grille multichaîne. |
+| Moyenne | Films/Séries sans raccourci français ou québécois; « Canada » incluait des contenus anglophones | Filtres Tous/Français/Québec combinés aux catégories et à la recherche. Reconnaissance VF/VFQ et noms francophones. Classement heuristique, pas une preuve de langue audio ni d’origine géographique. |
+| Moyenne | Une réponse réseau d’une ancienne page pouvait modifier l’état occupé de la nouvelle page | L’état occupé est réinitialisé au changement de page et les réponses obsolètes n’y touchent plus. Les requêtes ne sont pas encore annulées au changement de page. |
+| Moyenne | Les workflows de publication ne vérifiaient pas explicitement le certificat initial et gardait les premières notes par défaut dans le manifeste | Vérification `apksigner` et certificat SHA-256 initial dans les deux voies; release existante ignorée avant de comparer les sources à une ancienne distribution; ajout de `--notes-file` au générateur du manifeste. |
+
+Le certificat public initial vérifié depuis l’APK téléchargé est `6a09826ceee768d04367e205731a23a1b03a791c25b150c4cf232db2274d2e16`. Il ne s’agit pas d’une clé privée. Aucun changement de visibilité ou remplacement de la release 0.1.0 effectué pendant cette révision.
+
+### Vérifications et limites
+
+- `testDebugUnitTest`, `lintDebug`, `assembleDebug` et `compileReleaseKotlin` réussis sur les sources finales 0.2.0. **10 tests réussis, zéro échec; lint sans erreur (9 avertissements).**
+- Tests unitaires : règles audio (piste descriptive mémorisée, repli de langue, modes stéréo/5.1, piste unique), filtres linguistiques, guide (Base64, ordre, heures invalides et limites d’émission), extensions et rotation des 50 messages.
+- Émulateur Android API 35 en format paysage 1920 × 1080; catalogue Xtream et guide synthétiques hébergés localement, sans compte Edge. Vérifiés : accueil, horaire courant/suivant, ajout puis retrait immédiat dans Favoris, filtre Québec excluant le contenu anglophone, retour du lecteur conservant ce filtre. Avec un fichier de test H.264/AAC à deux pistes (première « Français AD » par défaut, deuxième « Français normal »), la piste normale est sélectionnée automatiquement. Le serveur de QA doit diffuser le MKV sans index de recherche ou gérer les requêtes Range; une première fixture non adaptée avait provoqué une erreur de conteneur. Les captures et données de QA restent hors Git.
+- Téléchargement anonyme du manifeste et de l’APK 0.1.0 : empreinte conforme au manifeste, signature v2 vérifiée avec `apksigner`. Cela valide la distribution actuelle, pas l’installation d’une seconde version sur Fire Stick.
+- `assembleRelease` a été tenté et échoue faute de `VICKTV_KEYSTORE` (configuration production sans `storeFile`). Ne pas remplacer la clé initiale ni distribuer l’APK debug comme une mise à jour. La nouvelle version est une proposition de sources à relire, non une livraison APK.
+- YAML des workflows chargé et 10 blocs shell vérifiés avec `bash -n`; génération du manifeste avec `--notes-file` vérifiée localement sur un APK debug, sans publication.
+- Aucun Fire Stick connecté. Lecture Edge, AC-3/E-AC-3, sortie HDMI 5.1, passage 0.1.0 → 0.2.0 conservant les données et compatibilité des deux appareils restent à confirmer.
+
+### Suite après révision
+
+Retirer les mentions provisoires « en préparation / non publié » des notes au moment de la publication. Retrouver la sauvegarde de la clé initiale, compiler 0.2.0 avec cette clé, exécuter `apksigner verify`, puis préparer la distribution et tester la mise à jour sur un seul Fire Stick. `distribution/` conserve les fichiers historiques 0.1.0; ne pas les publier comme 0.2.0. Une grille EPG multichaîne, les affiches/synopsis VOD et la reprise persistante restent des améliorations distinctes.

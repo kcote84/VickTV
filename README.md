@@ -6,6 +6,16 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
+## Évolution 0.2.0 — sources en révision
+
+L’APK public reste **0.1.0**. Les changements suivants sont préparés dans les sources pour **0.2.0 (code 2)**; ils ne seront disponibles dans une mise à jour qu’après compilation avec la clé de signature initiale et publication d’un nouvel APK.
+
+- Lecture plein écran lorsque les commandes sont masquées; Retour du lecteur vers la liste, la recherche et la sélection précédentes, sans recharger le catalogue.
+- Bouton **Options / Favoris** et touche Menu dans les listes; suppression immédiate d’un favori dans sa section.
+- Filtre **Langue : Tous / Français / Québec** dans Films et Séries, combinable avec les catégories originales. Ce classement se base sur les noms du fournisseur; il ne vérifie pas la langue des pistes ni l’origine d’une œuvre. « Canada » seul ne classe plus un contenu comme francophone.
+- **Horaire par chaîne** dans les options ou le lecteur : émission en cours, prochaines émissions et descriptions retournées par Xtream. Les heures suivent le fuseau du Fire Stick. Il ne s’agit pas encore d’une grille multichaîne ou d’un guide complet sur plusieurs jours.
+- Préférences **Automatique / Stéréo / Cinéma 5.1**. L’option **Éviter l’audiodescription** est activée par défaut : elle écarte les pistes identifiées comme descriptives si une piste normale existe, y compris si une piste descriptive avait été mémorisée. Le choix manuel reste possible; **Choix automatique** efface la préférence du contenu. Une narration non identifiée ou intégrée au seul flux ne peut pas être retirée.
+
 ## Première installation
 
 1. Télécharger **VickTV.apk** dans [Releases](https://github.com/kcote84/VickTV/releases).

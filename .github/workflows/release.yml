@@ -39,9 +39,14 @@ jobs:
         env:
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
+          sdkmanager "build-tools;35.0.0"
+          signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          "$signer" verify --verbose app/build/outputs/apk/release/app-release.apk
+          certificate=$("$signer" verify --print-certs app/build/outputs/apk/release/app-release.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          test "$certificate" = '6a09826ceee768d04367e205731a23a1b03a791c25b150c4cf232db2274d2e16' || { echo 'La signature diffère de la première version distribuée.'; exit 1; }
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk dist/VickTV.apk
-          python3 tools/release_metadata.py --apk dist/VickTV.apk --tag "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY"
+          python3 tools/release_metadata.py --apk dist/VickTV.apk --tag "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file docs/RELEASE_NOTES.md
           cd dist && sha256sum VickTV.apk > SHA256SUMS.txt
       - name: Publier la release
         env:

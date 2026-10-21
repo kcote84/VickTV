@@ -6,14 +6,16 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.Normalizer
+import java.util.Locale
 
 object CatalogRules {
-    fun normalize(s: String): String = Normalizer.normalize(s.lowercase(), Normalizer.Form.NFD).replace("\\p{M}+".toRegex(), "")
+    fun normalize(s: String): String = Normalizer.normalize(s.lowercase(Locale.ROOT), Normalizer.Form.NFD).replace("\\p{M}+".toRegex(), "")
     fun matches(section: String, category: String, title: String): Boolean {
         val text = normalize("$category $title")
         return when (section) {
             "Sports" -> Regex("sport|rds|tsn|espn|bein|dazn|nhl|nfl|nba|mlb|hockey|football").containsMatchIn(text)
-            "Français" -> Regex("(^|[^a-z])(fr|fra|qc|quebec|france|francais|canada)([^a-z]|$)|radio.?canada|tele.?quebec|tva|noovo|rds").containsMatchIn(text)
+            "Français" -> Regex("(^|[^a-z])(fr|fra|fre|vf|vff|vfq|vostfr|qc|quebec|france|francais|french)([^a-z]|$)|radio.?canada|tele.?quebec|tva|noovo|rds").containsMatchIn(text)
+            "Québec" -> Regex("(^|[^a-z])(qc|quebec|quebecois|quebecoise|quebecoises|vfq)([^a-z]|$)|radio.?canada|tele.?quebec|tva|noovo").containsMatchIn(text)
             else -> true
         }
     }
@@ -29,6 +31,7 @@ class Xtream(private val account: Account) {
     private fun api(action: String? = null, extra: Pair<String, String>? = null): String {
         val b = Uri.parse("$root/player_api.php").buildUpon().appendQueryParameter("username", account.username).appendQueryParameter("password", account.password)
         action?.let { b.appendQueryParameter("action", it) }; extra?.let { b.appendQueryParameter(it.first, it.second) }
+        if (action == "get_short_epg") b.appendQueryParameter("limit", "24")
         return Network.text(b.build().toString())
     }
     fun authenticate() {
@@ -52,11 +55,12 @@ class Xtream(private val account: Account) {
         val all = JSONObject(api("get_series_info", "series_id" to series.id)).optJSONObject("episodes") ?: return emptyList()
         return all.keys().asSequence().toList().sortedBy { it.toIntOrNull() ?: 0 }.flatMap { season ->
             val a = all.optJSONArray(season) ?: JSONArray()
-            (0 until a.length()).map { a.getJSONObject(it) }.map {
+            (0 until a.length()).map { a.getJSONObject(it) }.sortedBy { it.optInt("episode_num") }.map {
                 Entry(it.optString("id"), "S$season · ${it.optString("title", "Épisode ${it.optInt("episode_num")}")}", series.category, "episode", CatalogRules.safeExtension(it.optString("container_extension"), "mp4"))
             }
         }.filter { it.id.matches(Regex("\\d+")) }
     }
+    fun guide(channel: Entry): List<Programme> = Guide.parse(api("get_short_epg", "stream_id" to channel.id))
     fun stream(e: Entry, hls: Boolean): String {
         val path = when (e.kind) { "live" -> "live"; "vod" -> "movie"; else -> "series" }
         val ext = if (e.kind == "live" && hls) "m3u8" else e.extension
