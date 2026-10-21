@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.4.0**, `versionCode = 5`, thème rose, identité VicTV et regroupement Adultes (section 16). Version précédente : **0.3.0**, `versionCode = 4`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour le guide actuel.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.4.1**, `versionCode = 6`, correction du nom VickTv (section 17). Version précédente : **0.4.0**, `versionCode = 5`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour le guide actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -408,6 +408,11 @@ Prochaine validation sur matériel : mettre à jour un Fire Stick via Réglages 
 
 Le propriétaire précise l’orthographe **VickTv**, avec le k, au lieu de VicTV. Le nom visible du manifeste, l’accueil, les dialogues et les instructions d’installation sont corrigés. L’icône et la bannière sont retouchées avec imagegen uniquement pour corriger le mot-symbole en VickTv. Le rose, le dessin et les fonctions de 0.4.0 sont conservés.
 
-Version préparée : 0.4.1 / code 6. Le paquet `ca.vicktv`, le dépôt `kcote84/VickTV`, le fichier distribué `VickTV.apk`, la signature et les données locales conservent leur identité. Résultats du build et publication à consigner après vérification.
+Version publiée : 0.4.1 / code 6. Le paquet `ca.vicktv`, le dépôt `kcote84/VickTV`, le fichier distribué `VickTV.apk`, la signature et les données locales conservent leur identité. Résultats du build et de la publication ci-dessous.
 
 Validation locale : 20 tests réussis, lint sans erreur, assembleRelease réussi avec la clé initiale. APK de 6960075 octets, SHA-256 `944673630f7edd837a727198de397170de96552c61471307b3fbc5ccc0bc9ca2`; tous les morceaux remplacés et reconstruction conforme au manifeste. Aucune nouvelle fonctionnalité ni nouveau test matériel dans ce correctif de nom.
+
+
+La [PR nº 5](https://github.com/kcote84/VickTV/pull/5) est fusionnée au commit `d71917c4760f0387f4b8e0a89aad7540e6ccd53e`, après réussite du contrôle Android [39669368405](https://github.com/kcote84/VickTV/actions/runs/39669368405). Le workflow [39669686446](https://github.com/kcote84/VickTV/actions/runs/39669686446) a publié [v0.4.1](https://github.com/kcote84/VickTV/releases/tag/v0.4.1).
+
+Le manifeste stable, l’APK et SHA256SUMS ont été téléchargés sans authentification : code 6, 6 960 075 octets identiques au fichier signé local, empreinte `944673630f7edd837a727198de397170de96552c61471307b3fbc5ccc0bc9ca2` conforme et certificat initial inchangé. Le paquet compilé annonce le nom exact VickTv. Les copies extraites de signature ont été supprimées; la sauvegarde privée originale reste hors dépôt. Les limites des essais matériels précédents restent applicables.
