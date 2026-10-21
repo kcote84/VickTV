@@ -374,6 +374,7 @@ class MainActivity : Activity() {
             val chrome = if(visibility == View.VISIBLE || row.hasFocus()) View.VISIBLE else View.GONE
             heading.visibility = chrome; row.visibility = chrome
         })
+        val useHls = entry.kind == "live" && store.prefs.getBoolean("hls", false)
         val factory = DefaultMediaSourceFactory(DefaultHttpDataSource.Factory().setUserAgent("VickTv/${BuildConfig.VERSION_NAME}").setConnectTimeoutMs(15000).setReadTimeoutMs(20000).setAllowCrossProtocolRedirects(false))
         val p = ExoPlayer.Builder(this).setMediaSourceFactory(factory).build(); player = p; video.player = p
         p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setPreferredAudioLanguage("fr").setMaxAudioChannelCount(if(audioMode() == "stereo") 2 else Int.MAX_VALUE).build()
@@ -382,14 +383,31 @@ class MainActivity : Activity() {
             override fun onPlaybackStateChanged(state: Int) { if(state == Player.STATE_READY) retries = 0 }
             override fun onPlayerError(error: PlaybackException) {
                 if (screen != "player" || player !== p) return
-                if (retries < 3) {
+                if (retries < 3 && PlaybackErrors.shouldRetry(PlaybackErrors.httpStatus(error))) {
                     retries++; toast("Reconnexion $retries/3…")
                     retryTask = Runnable { if(player === p && screen == "player") { p.prepare(); p.play() } }.also { main.postDelayed(it, 1500L * retries) }
-                } else message("Lecture interrompue", "Le flux ou le format audio/vidéo ne peut pas être lu. Essaie Reprendre, une autre piste audio ou l’autre format du direct dans Réglages.\nCode : ${error.errorCodeName}")
+                } else playbackError(entry, useHls, error)
             }
         })
-        val url = Xtream(store.account()!!).stream(entry, store.prefs.getBoolean("hls", false))
+        val url = Xtream(store.account()!!).stream(entry, useHls)
         p.setMediaItem(MediaItem.fromUri(url)); if(entry.kind != "live") p.seekTo(position); p.prepare(); p.play(); video.requestFocus()
+    }
+    private fun playbackError(entry: Entry, hls: Boolean, error: PlaybackException) {
+        val status = PlaybackErrors.httpStatus(error)
+        val details = buildString {
+            append(PlaybackErrors.explanation(status))
+            if(entry.kind == "live") append("\nFormat du direct : ${if(hls) "HLS" else "MPEG-TS"}")
+            status?.let { append("\nHTTP : $it") }
+            append("\nCode : ${error.errorCodeName}")
+            if(hls) append("\n\nPasser en MPEG-TS change le format pour toutes les chaînes en direct.")
+        }
+        val dialog = AlertDialog.Builder(this).setTitle("Lecture interrompue").setMessage(details)
+            .setNegativeButton("Fermer", null)
+        if(hls) dialog.setPositiveButton("Passer en MPEG-TS") { _, _ ->
+            store.prefs.edit().putBoolean("hls", false).apply()
+            play(entry)
+        }
+        dialog.show()
     }
     private fun fingerprint(f: Format): String = listOf(f.language ?: "", f.label ?: "", f.sampleMimeType ?: "", f.channelCount.toString(), f.roleFlags.toString()).joinToString("|")
     private fun restoreAudio(tracks: Tracks) {

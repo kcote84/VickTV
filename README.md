@@ -6,9 +6,11 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.4.1
+## Version 0.4.2
 
-La version **0.4.1 (code 6)** corrige le nom affiché et les visuels en **VickTv**. Elle habille l’app en rose bonbon et prune, avec un nouveau logo cartoon **VickTv**, une icône et une bannière pour le lanceur TV. Elle ajoute la section **Adultes 18+** et conserve la clé de signature initiale. Le dépôt, le fichier APK et le paquet Android conservent leurs noms techniques `VickTV` / `ca.vicktv` pour les mises à jour.
+La version **0.4.2 (code 7)** affiche le numéro HTTP précis lorsqu’une requête de lecture échoue, avec une explication et un bouton **Passer en MPEG-TS** pour les erreurs HLS. Ce bouton relance la chaîne et conserve MPEG-TS pour tout le direct. Les erreurs 401, 403, 404 et 410 sont signalées sans attendre trois reconnexions. Aucun lien de flux ni identifiant n’est affiché dans ce diagnostic.
+
+Cette amélioration aide à identifier la panne; elle ne garantit pas que le fournisseur propose du HLS ou d’autres pistes audio. Le thème rose, le guide, les favoris, le classement Adultes et les réglages audio sont conservés. Le dépôt, le fichier APK et le paquet Android gardent leurs noms techniques `VickTV` / `ca.vicktv` et la signature initiale.
 
 Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jour** lorsque la version est disponible dans Releases.
 
