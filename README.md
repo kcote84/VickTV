@@ -2,6 +2,10 @@
 
 Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus, de gros boutons et un petit mot d’amour avant la soirée.
 
+## Documentation du projet
+
+Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
+
 ## Première installation
 
 1. Télécharger **VickTV.apk** dans [Releases](https://github.com/kcote84/VickTV/releases).

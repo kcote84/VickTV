@@ -9,3 +9,5 @@ Application personnelle Fire TV. Tout contenu utilisateur en français québéco
 - Conserver 50 messages distincts et la rotation persistante.
 - Les mises à jour ne doivent pas embarquer de jeton GitHub personnel.
 - Tenir README et les notes de release à jour sur les limites réellement présentes.
+
+- Avant une reprise, lire docs/DEVELOPPEMENT.md, la référence technique et de suivi. La mettre à jour après toute évolution significative avec les décisions, limites et résultats réellement vérifiés.
