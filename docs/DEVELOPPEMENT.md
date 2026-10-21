@@ -126,7 +126,7 @@ Il n’y a pas encore de second moteur VLC, de réglage de passthrough dédié d
 
 Dépôt : [kcote84/VickTV](https://github.com/kcote84/VickTV). Version initiale : [v0.1.0](https://github.com/kcote84/VickTV/releases/tag/v0.1.0).
 
-Le 21 octobre 2026, Kev a autorisé explicitement la visibilité publique du code et des APK. Le téléchargement anonyme du manifeste et de l’APK doit être vérifié après tout changement de visibilité. L’autorisation ne suffit pas à démontrer que ce réglage GitHub a effectivement été appliqué.
+Le 21 octobre 2026, Kev a autorisé explicitement la visibilité publique du code et des APK. Le passage en public a été appliqué dans GitHub après sa vérification d’identité. La visibilité publique a été confirmée, puis le manifeste et l’APK 0.1.0 ont été téléchargés sans authentification. L’APK téléchargé contient 4 310 803 octets et son SHA-256 correspond au manifeste. Refaire ces contrôles après tout changement de visibilité.
 
 Chaque release distribuée doit contenir :
 
@@ -204,6 +204,7 @@ Pour un simple changement de documentation, ne pas générer de nouvel APK et ne
 - Quatre tests unitaires réussis : catégories françaises, catégories sportives, extensions de fichier et 50 messages distincts/rotation.
 - Analyse Android `lintDebug` réussie et signature APK validée avec `apksigner`.
 - Workflow de publication terminé avec succès et release 0.1.0 créée avec ses trois fichiers.
+- Distribution publique confirmée : manifeste et APK accessibles sans authentification, empreinte du téléchargement conforme.
 - Le contrôle CI des tests, du lint et du build debug a réussi; la finalisation de l’exécution GitHub peut être vérifiée dans Actions.
 
 SHA-256 de l’APK initial :
@@ -235,6 +236,6 @@ Après ces essais, corriger les problèmes bloquants de lecture, audio ou naviga
 | 2026-10-21 | Nom VickTV choisi; MVP pour deux Fire Stick et 50 messages d’amour | Conserver l’identité et les contraintes produit |
 | 2026-10-21 | Première version Kotlin/Media3 compilée, signée et publiée | Validation matérielle en attente |
 | 2026-10-21 | Correction CI : retrait du paquet SDK `tools` obsolète; installation explicite de `platform-tools` | Configuration corrigée dans les trois workflows |
-| 2026-10-21 | Accord de Kev pour la visibilité publique et demande d’une documentation durable | Maintenir cette référence et vérifier les téléchargements anonymes |
+| 2026-10-21 | Accord de Kev, passage en public appliqué après vérification GitHub Mobile; téléchargements anonymes et SHA-256 vérifiés | Maintenir cette référence; essais sur Fire Stick et mise à jour sur place encore à faire |
 
 À chaque séance, ajouter uniquement les changements significatifs et leurs validations. Pour un résultat matériel, consigner version de l’app, appareil/OS, scénario, résultat et prochaine action, sans identifiants ni URL authentifiées.
