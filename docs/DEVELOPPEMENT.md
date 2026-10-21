@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version préparée : **0.4.0**, `versionCode = 5`, thème rose, identité VicTV et regroupement Adultes (section 16). Dernière version distribuée avant ce chantier : **0.3.0**, `versionCode = 4`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour le guide actuel.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.4.0**, `versionCode = 5`, thème rose, identité VicTV et regroupement Adultes (section 16). Version précédente : **0.3.0**, `versionCode = 4`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour le guide actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -391,3 +391,14 @@ L’APK est installé par-dessus 0.3.0 sur émulateur Android API 35 au format 9
 
 
 Serveur Xtream synthétique local : seize chaînes, dont trois entrées classées Adultes par trois voies (drapeau `is_adult=1` sur un nom neutre, nom XXX, catégorie Adultes) et une chaîne Adult Swim non adulte. Les trois bonnes entrées apparaissent dans le direct, les films, les séries et le filtre du guide. Un changement de catégorie vers un groupe général conserve seulement l’entrée marquée adulte; le filtre Français reste combinable. Aucun compte Edge ni contenu pornographique réel n’a été utilisé dans les tests.
+
+
+### Publication 0.4.0
+
+La [PR nº 4](https://github.com/kcote84/VickTV/pull/4) est fusionnée au commit `c9c58fa4d479b7e8c9e75d42a25df5817653076a` après réussite du contrôle Android [39665521960](https://github.com/kcote84/VickTV/actions/runs/39665521960). Le workflow [39665888565](https://github.com/kcote84/VickTV/actions/runs/39665888565) a publié [v0.4.0](https://github.com/kcote84/VickTV/releases/tag/v0.4.0), avec APK, manifeste et SHA256SUMS.
+
+Le manifeste stable propose bien le code 5. Les trois fichiers sont téléchargés sans authentification : APK de 6 812 383 octets, empreinte et octets identiques au fichier local testé; SHA256SUMS conforme et certificat original confirmé à nouveau avec apksigner sur l’APK public. Les copies extraites de clé/mots de passe ont été retirées; seule la sauvegarde privée originale demeure hors dépôt.
+
+L’ajout d’un favori depuis le guide Adultes est confirmé dans le guide et dans la section générale Favoris. L’écran système Android affiche correctement le nom VicTV et l’icône complète, vérifiés visuellement. Les captures automatiques attendent la fin des animations de dialogue avant de conclure sur les actions; un premier essai trop rapide avec Retour avait interrompu le clic de la fixture.
+
+Prochaine validation sur matériel : mettre à jour un Fire Stick via Réglages → Vérifier les mises à jour, vérifier la nouvelle icône/bannière dans son lanceur, la lisibilité du rose et le classement Adultes avec le catalogue Edge. Le classement dépend des données du fournisseur; aucun horaire ni contenu adulte réel n’a été utilisé pour les essais. Les réglages audio et les limites de validation HDMI précédentes restent inchangés.
