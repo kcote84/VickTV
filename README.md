@@ -6,16 +6,30 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.2.1
+## Version 0.3.0
 
-La version **0.2.1 (code 3)** est signée avec la même clé que 0.1.0. Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jour** lorsque la version est disponible dans Releases.
+La version **0.3.0 (code 4)** ajoute le guide TV multichaîne et conserve la clé de signature initiale. Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jour** lorsque la version est disponible dans Releases.
 
 - APK de mise à jour conservé dans le stockage privé, hors cache, pour résister aux purges du système en cas de manque d’espace.
 - Lecture plein écran lorsque les commandes sont masquées; Retour du lecteur vers la liste, la recherche et la sélection précédentes, sans recharger le catalogue.
 - Bouton **Options / Favoris** et touche Menu dans les listes; suppression immédiate d’un favori dans sa section.
 - Filtre **Langue : Tous / Français / Québec** dans Films et Séries, combinable avec les catégories originales. Ce classement se base sur les noms du fournisseur; il ne vérifie pas la langue des pistes ni l’origine d’une œuvre. « Canada » seul ne classe plus un contenu comme francophone.
-- **Horaire par chaîne** dans les options ou le lecteur : émission en cours, prochaines émissions et descriptions retournées par Xtream. Les heures suivent le fuseau du Fire Stick. Il ne s’agit pas encore d’une grille multichaîne ou d’un guide complet sur plusieurs jours.
+- **Guide TV** dès l’accueil et dans le lecteur : cinq chaînes visibles, grille de deux heures, émission en cours, descriptions, Français, Favoris, catégories et recherche par nom ou numéro. Jusqu’à douze heures à venir selon les données Xtream. Les heures affichées suivent le fuseau du Fire Stick.
 - Préférences **Automatique / Stéréo / Cinéma 5.1**. L’option **Éviter l’audiodescription** est activée par défaut : elle écarte les pistes identifiées comme descriptives si une piste normale existe, y compris si une piste descriptive avait été mémorisée. Le choix manuel reste possible; **Choix automatique** efface la préférence du contenu. Une narration non identifiée ou intégrée au seul flux ne peut pas être retirée.
+
+![Guide TV — horaire fictif du mode démo](docs/images/guide-tv-demo.png)
+
+## Le guide, en trois gestes
+
+1. À l’accueil, choisir **Guide TV**. **↑ ↓** change de chaîne; **← →** parcourt les émissions et les heures suivantes.
+2. **OK** regarde la chaîne si l’émission est en cours. Sur une émission à venir, OK ouvre les détails et propose de regarder la chaîne **en direct**.
+3. **Retour** retrouve sa place dans le guide après la lecture; un autre Retour ramène à l’accueil.
+
+Pour garder une chaîne : **Menu → Ajouter aux favoris**, ou le bouton **☆ Ajouter favori**. **★ Favoris** ne montre ensuite que ces chaînes. Menu donne aussi accès à **Français / Favoris / Toutes**, à la recherche et à **Revenir à maintenant**, depuis n’importe quelle ligne. **? Aide** explique les commandes dans l’application.
+
+**Rechercher** trouve un nom ou un numéro dans la sélection actuelle. Choisir **Toutes**, puis **Rechercher → Tout effacer** pour repartir de toutes les chaînes. **Catégories** reprend les groupes du fournisseur. À l’ouverture, le guide privilégie les favoris existants, sinon les chaînes françaises, sinon toutes les chaînes.
+
+Sans compte, le guide montre un **horaire de démonstration fictif**, clairement identifié. Avec un compte, les titres et descriptions viennent uniquement du fournisseur. Une chaîne sans horaire reste accessible avec OK; une case vide n’invente aucune émission. Il n’y a ni enregistrement, ni rattrapage, ni guide sur plusieurs jours.
 
 ## Première installation
 
@@ -30,7 +44,7 @@ La version **0.2.1 (code 3)** est signée avec la même clé que 0.1.0. Les mise
 ## Navigation
 
 - Flèches : naviguer; OK : ouvrir ou regarder; Retour : revenir.
-- Accueil : Français, Sports, Films, Séries, Favoris et Toutes les chaînes.
+- Accueil : Guide TV, Français, Sports, Films, Séries, Favoris et Toutes les chaînes.
 - Les regroupements Français/Sports utilisent les noms des catégories et chaînes du fournisseur; ils peuvent être imparfaits. Le bouton **Catégories** donne accès au catalogue original.
 - Appui long sur OK dans une liste : ajouter/retirer un favori.
 - Pendant la lecture : **Audio / Son** ou touche Menu de la télécommande pour choisir une piste.

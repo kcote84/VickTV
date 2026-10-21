@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.2.1**, `versionCode = 3`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections 3 et 10 décrivent l’état initial; les sections 12 et 13 suivent la révision et la livraison 0.2.0.
+Dernière mise à jour : **21 octobre 2026**. Version préparée : **0.3.0**, `versionCode = 4`, guide multichaîne (section 15). Dernière version distribuée avant ce chantier : **0.2.1**, `versionCode = 3`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour le guide actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -312,3 +312,37 @@ Le contrôle Android des sources finales sur `main` [39658680980](https://github
 Le manifeste stable et l’APK 0.2.1 ont été téléchargés sans authentification après publication : code 3, 4 319 603 octets, SHA-256 conforme à la distribution et signature v2 valide. Les APK 0.1.0 et 0.2.0 utilisent encore l’ancien stockage en cache pour leur propre parcours de mise à jour : si ce premier passage échoue faute de fichier, installer manuellement l’APK 0.2.1 par-dessus la version existante, sans désinstaller. Le nouveau stockage privé s’appliquera aux téléchargements des mises à jour suivantes.
 
 Prochaine validation matérielle : installer 0.2.1 sur un seul Fire Stick, connecter Edge, vérifier direct/film/épisode, guide et favoris, puis écouter les chaînes problématiques avec les différentes pistes stéréo/5.1. Aucun essai Fire OS ni restitution HDMI réelle n’est revendiqué par ces tests sur émulateur.
+
+
+## 15. Guide TV multichaîne — 0.3.0
+
+Demande : un guide beau et simple utilisable à la télécommande sans connaissance technique. Le bouton principal **Guide TV** est placé en premier sur l’accueil; le lecteur et les options des chaînes permettent aussi de l’ouvrir sur la chaîne concernée.
+
+### Composants et choix
+
+- `TvGuideGrid.kt` : vue Android Canvas, seulement cinq lignes dessinées et une fenêtre de deux heures. Le curseur horaire est conservé quand on change de chaîne; gauche/droite passe d’une émission à l’autre et fait avancer la fenêtre. Limite de douze heures depuis la demi-heure courante. Chaînes +/− saute cinq lignes. La sélection, l’émission en cours et le repère Maintenant ont des styles distincts.
+- `TvGuideScreen.kt` : présentation, filtres, recherche, aide, favoris et chargement progressif. Les filtres favorisent les favoris existants au premier chargement, sinon Français, sinon Toutes. Recherche combinée au filtre courant; catégories du fournisseur disponibles. Menu propose les actions depuis chaque ligne sans remonter tout le catalogue. Les favoris démo restent en mémoire et ne polluent pas les vrais favoris.
+- `Guide.kt` : programmes et découpage pur des cases. Les cases sont coupées aux limites de la fenêtre, les chevauchements bornés et les trous affichés sans inventer d’émission. Les timestamps en secondes ou millisecondes sont prioritaires. Dates avec offset acceptées; dates naïves acceptées uniquement avec `server_info.timezone`, jamais en supposant UTC.
+- `Xtream.guide` demande `get_simple_data_table`; si la réponse échoue, est vide ou ne contient que du passé, repli `get_short_epg` (limite demandée 64). Le serveur peut fournir moins de données. Aucun XMLTV complet téléchargé ni aucune URL Edge intégrée.
+- Trois tâches réseau au maximum, uniquement les cinq chaînes visibles. Connexion EPG limitée à 5 s, lecture à 8 s et réponse à 2 millions de caractères. Cache LRU de 96 chaînes, au plus 256 programmes par chaîne dans une plage de 24 h, fraîcheur de 3 min. Catalogue en mémoire pendant 5 min. Requêtes quittant l’écran annulées, file purgée et génération/ticket vérifiés avant de livrer une réponse; une lecture HTTP déjà bloquée peut attendre son délai avant de libérer son thread.
+- Le cache est propre au compte et détruit si le compte change. Aucun nouveau stockage de compte ou horaire sur disque. Les favoris conservent maintenant le numéro de chaîne quand le fournisseur l’envoie, avec compatibilité des anciens favoris sans numéro.
+- Le lecteur libère sa session en revenant au guide. Retour après lecture retrouve le filtre, la chaîne et la fenêtre en mémoire, sans nouvel appel catalogue tant que le cache est frais. Le bouton Maintenant réactive le suivi de l’heure courante. Rien ne persiste la position du guide après destruction du processus.
+
+### Utilisation et limites
+
+L’aide intégrée explique trois gestes : haut/bas, gauche/droite et OK. OK sur une émission en cours ou une chaîne sans horaire démarre le direct. Sur une émission future ou terminée, un dialogue affiche le synopsis et précise que Regarder démarre **le direct**, pas cette émission en rattrapage. Menu donne aussi accès aux détails complets de l’émission en cours.
+
+Sans compte, huit chaînes et des émissions fictives permettent de tester la grille, explicitement marquées DÉMO / EXEMPLE D’HORAIRE. Aucun flux fourni. Le texte annoncé aux services d’accessibilité décrit la chaîne et la case sélectionnée; les cellules dessinées ne constituent pas encore une collection de nœuds virtuels pour exploration TalkBack individuelle. Aucun test VoiceView Fire TV revendiqué.
+
+La vitesse et la quantité d’horaires restent liées au serveur. Pas de rattrapage, enregistrement, guide sur plusieurs jours, logo de chaîne ou synchronisation entre appareils dans ce chantier. Les catégories Français/Québec demeurent des heuristiques de noms.
+
+### Vérification du candidat
+
+Les cas automatisés couvrent désormais aussi les trous, chevauchements, découpages, limites exactes de cases, timestamps en millisecondes, débordements et dates avec/sans fuseau du fournisseur. Les essais sur émulateur et la publication finale sont consignés ci-dessous après vérification de l’APK définitif.
+
+
+Validation locale de l’APK définitif : **16 tests réussis**, `lintDebug` sans erreur (9 avertissements existants), `assembleRelease` réussi. `apksigner verify --verbose` confirme le certificat initial. `aapt dump badging` confirme `ca.vicktv`, **0.3.0 / code 4**, sans `application-debuggable`. Taille : **4 343 635 octets**. SHA-256 : `6dd83ce2654f34e1c5ead2a6b5be6c0a683be23a16224c06fe4048cacdd37ca5`. Les 15 morceaux de distribution se reconstruisent exactement en cet APK; manifeste et SHA256SUMS concordent.
+
+Sur émulateur API 35, format TV 960 × 540 dp : grille et aide inspectées visuellement; navigation D-pad, défilement au-delà de cinq chaînes, programme futur et retour, Français excluant une chaîne anglaise, catégories Sports, recherche du numéro 108, ajout/retrait immédiat et état Favoris vide, chargement de dates locales avec fuseau serveur, endpoint complet indisponible et repli court, chaîne sans horaire, erreur HTTP par chaîne sans dialogue bloquant. Le serveur synthétique confirme que seules cinq chaînes sont demandées au début, puis les nouvelles lignes à mesure du défilement. APK installé par-dessus 0.2.1 avec la même clé; un favori de laboratoire et le compte de test survivent à une nouvelle installation du candidat. Pas d’essai Edge ni Fire Stick.
+
+La lecture de test depuis le guide retrouve les deux pistes AAC; après application asynchrone de la sélection, la piste « Français normal » est sélectionnée et « Éviter l’audiodescription : oui » est confirmé dans Réglages. Un menu ouvert immédiatement au premier changement de pistes peut encore refléter la sélection précédente; attendre la stabilisation avant de conclure sur la piste active. Une capture du guide démo de l’APK final est conservée dans `docs/images/guide-tv-demo.png` (émulateur Android en format TV).
