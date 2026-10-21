@@ -416,3 +416,14 @@ Validation locale : 20 tests réussis, lint sans erreur, assembleRelease réussi
 La [PR nº 5](https://github.com/kcote84/VickTV/pull/5) est fusionnée au commit `d71917c4760f0387f4b8e0a89aad7540e6ccd53e`, après réussite du contrôle Android [39669368405](https://github.com/kcote84/VickTV/actions/runs/39669368405). Le workflow [39669686446](https://github.com/kcote84/VickTV/actions/runs/39669686446) a publié [v0.4.1](https://github.com/kcote84/VickTV/releases/tag/v0.4.1).
 
 Le manifeste stable, l’APK et SHA256SUMS ont été téléchargés sans authentification : code 6, 6 960 075 octets identiques au fichier signé local, empreinte `944673630f7edd837a727198de397170de96552c61471307b3fbc5ccc0bc9ca2` conforme et certificat initial inchangé. Le paquet compilé annonce le nom exact VickTv. Les copies extraites de signature ont été supprimées; la sauvegarde privée originale reste hors dépôt. Les limites des essais matériels précédents restent applicables.
+
+
+## 18. Investigation Zeste / audio unique et HLS — 0.4.1
+
+Sur Fire Stick, le propriétaire signale une seule piste pour Zeste : `und · 2 canaux · audio/mp4a-latm`, avec le même problème de narration que dans TiviMate. Le passage en HLS échoue avec un message de lecture; le code exact reste demandé. Aucune cause attribuée définitivement à Edge ni au lecteur à ce stade.
+
+Audit : `audioMenu` expose toutes les pistes audio de `currentTracks`, y compris celles non prises en charge. Le choix automatique et le mode Stéréo changent la sélection, pas la construction de cette liste. Une seule ligne indique une seule piste détectée par Media3 pour ce flux; l’absence réelle d’autres pistes dans le transport reste à prouver indépendamment.
+
+Vérification supplémentaire effectuée avec l’APK signé **0.4.1 / code 6** inchangé sur émulateur API 35 : fixture HLS locale, vidéo H.264 et deux variantes audio AAC françaises séparées, dont une AD déclarée par défaut. Le lien Xtream `.m3u8` redirige vers une playlist maître puis des playlists vidéo/audio avec segments TS. ffprobe confirme les deux pistes et la vidéo. VickTv démarre la lecture, expose les deux pistes et sélectionne « Français normal » malgré AD par défaut. Capture de laboratoire `qa/hls-audio-probe.png`, données et scripts hors Git. Ceci confirme le chemin HLS général sur émulateur; aucune validation du flux Edge, de la sortie sonore réelle ni du HLS sur le Fire Stick du propriétaire.
+
+Retour provisoire conseillé sur MPEG-TS pour conserver la lecture. Prochaine étape : relever `Code : ERROR_CODE_…` après les reconnexions sur le HLS réel; selon le code, examiner refus HTTP, manifeste/segments ou décodage. Aucun correctif de code, nouveau build ni nouvelle release produit par ce seul test. Les limites de validation précédentes demeurent.
