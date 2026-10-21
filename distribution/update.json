@@ -1,7 +1,7 @@
 {
-  "versionCode": 9,
-  "versionName": "0.5.0",
-  "notes": "# VickTv 0.5.0\n\n- Bordure de sécurité sur les écrans et les commandes : 5 % par défaut, ou 8 % dans Réglages → Bordure TV.\n- Guide TV : ★ Favoris est le premier onglet et la sélection à la première ouverture. Les retours conservent la place précédente.\n- Le raccourci Français devient Québec pour le direct : chaînes locales francophones, sans les chaînes de France reconnues. Direct conserve le catalogue complet.\n- Films et Séries : galeries de pochettes, recherche et favoris, directement en français, sans menus de filtres. Les contenus français de France, du Québec et doublés restent admissibles; VOSTFR est exclu.\n- Les commandes de lecture apparaissent par-dessus l’image plein écran, sans la réduire.\n- Le classement et les pochettes dépendent des métadonnées du fournisseur. Une affiche manquante garde une vignette et le titre; aucune vérification automatique des pistes de chaque film.\n- Réglages audio, diagnostic HTTP et mises à jour conservés. Aucun changement au flux de Zeste ni au problème de narration déjà intégré à une piste unique.\n- Même paquet et même clé de signature : mise à jour sur place, sans désinstallation.\n",
-  "apkUrl": "https://github.com/kcote84/VickTV/releases/download/v0.5.0/VickTV.apk",
-  "sha256": "9e59e1bc8ab0eee6be0ff8a6ab82b5cfb9828701e32ca2cb9dc152397033d7ae"
+  "versionCode": 10,
+  "versionName": "0.5.1",
+  "notes": "# VickTv 0.5.1\n\n- Guide TV : les anciennes chaînes se masquent dès le choix d’un onglet et une roue rose apparaît pendant le chargement.\n- Filtrage en arrière-plan pour garder l’interface et la roue réactives sur les gros catalogues.\n- Les changements rapides entre Favoris, Québec et Toutes conservent le dernier choix; les résultats devenus obsolètes sont ignorés.\n- La roue couvre aussi le chargement initial du catalogue. Les horaires continuent de se compléter dans la grille une fois les chaînes affichées.\n- Favoris, compte, réglages audio et présentation 0.5.0 conservés.\n- Même paquet et même clé de signature : mise à jour sur place, sans désinstallation.\n",
+  "apkUrl": "https://github.com/kcote84/VickTV/releases/download/v0.5.1/VickTV.apk",
+  "sha256": "aeebcf7258ebfafad4a535a3591ee30cf68516327cf14ff64d8c7826abde8252"
 }

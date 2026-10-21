@@ -4,6 +4,7 @@ Application personnelle Fire TV. Tout contenu utilisateur en français québéco
 
 - Ne jamais commettre de comptes Xtream, clés de signature ou mots de passe.
 - Ne jamais publier un APK de production avec une nouvelle clé; conserver la clé initiale.
+- Conserver les favoris et le compte lors des mises à jour; ne jamais réinitialiser ces données pour une évolution de l’interface. Vérifier une installation par-dessus la version précédente avant livraison.
 - Avant livraison : testDebugUnitTest, lintDebug, assembleRelease et apksigner verify.
 - Ne pas prétendre avoir testé les flux ou le matériel si aucun Fire Stick n’est connecté.
 - Conserver 50 messages distincts et la rotation persistante.

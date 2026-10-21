@@ -9,7 +9,12 @@ import java.text.Normalizer
 import java.util.Locale
 
 object CatalogRules {
-    fun normalize(s: String): String = Normalizer.normalize(s.lowercase(Locale.ROOT), Normalizer.Form.NFD).replace("\\p{M}+".toRegex(), "")
+    private val accents = Regex("\\p{M}+")
+    private val foreignLiveCategory = Regex("\\b(france|belgique|suisse|afrique)\\b")
+    private val franceLiveChannel = Regex("\\b(france\\s*(2|3|4|5|24)|tf1|tfx|tmc|m6|w9|6ter|bfm(?:tv)?|lci|arte)\\b")
+    private val quebecCategory = Regex("\\b(qc|quebec|quebecois|quebecoise|quebecoises)\\b")
+    private val canadaCategory = Regex("\\bcanad(?:a|ian)\\b")
+    fun normalize(s: String): String = Normalizer.normalize(s.lowercase(Locale.ROOT), Normalizer.Form.NFD).replace(accents, "")
     private val adultCategory = Regex("(^|[^a-z0-9])adults?(?:e|es)?([^a-z0-9]|$)")
     private val adultMarker = Regex("(^|[^a-z0-9])(?:xxx|porn(?:o|os|ography|ographique|ographiques)?|erotic(?:a)?|erotiques?|18\\s*(?:\\+|plus)|playboy|penthouse|hustler|brazzers)(?=$|[^a-z0-9])")
     private val quebecBrands = Regex("^(?:radio[ -]?canada|tele[ -]?quebec|ici[ -]?(?:tele(?:vision)?|rdi|artv|explora)|tva|noovo|rds|lcn|zeste|historia|evasion|series[ -]?plus|cinepop|addik(?:[ -]?tv)?|casa|canal[ -]?(?:d|vie|savoir)|savoir[ -]?media|prise[ -]?2|unis[ -]?tv|ami[ -]?tele|artv|assemblee[ -]?nationale|cpac|elle[ -]?fictions|frissons[ -]?tv|investigation|matv|max|meteo[ -]?media|natyf[ -]?tv|planete\\s*\\+?\\s*canada|saisons|stingray[ -]?(?:franco|palmares)|super[ -]?ecran|telemag|teletoon(?![ -]?(?:plus|\\+))|temoin|tfo|tv5(?![ -]?monde)|vie|z[ -]?tele|a[ -]?la[ -]?carte)\\b")
@@ -34,11 +39,10 @@ object CatalogRules {
     }
     fun isQuebecLive(category: String, title: String): Boolean {
         val group = normalize(category); val name = normalize(title)
-        if (Regex("\\b(france|belgique|suisse|afrique)\\b").containsMatchIn(group)) return false
-        if (Regex("\\b(france\\s*(2|3|4|5|24)|tf1|tfx|tmc|m6|w9|6ter|bfm(?:tv)?|lci|arte)\\b").containsMatchIn(name)) return false
-        val quebec = Regex("\\b(qc|quebec|quebecois|quebecoise|quebecoises)\\b")
-        if (quebec.containsMatchIn(group)) return true
-        if (Regex("\\bcanad(?:a|ian)\\b").containsMatchIn(group) && matches("Français", group, "")) return true
+        if (foreignLiveCategory.containsMatchIn(group)) return false
+        if (franceLiveChannel.containsMatchIn(name)) return false
+        if (quebecCategory.containsMatchIn(group)) return true
+        if (canadaCategory.containsMatchIn(group) && matches("Français", group, "")) return true
         return quebecBrands.containsMatchIn(name)
     }
     fun isFrenchVod(category: String, title: String): Boolean {
