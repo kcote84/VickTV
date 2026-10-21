@@ -38,7 +38,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     private var generation = 0
     private var all = emptyList<Entry>()
     private var categories = emptyList<Category>()
-    private var filter = "Français"
+    private var filter = "★ Favoris"
     private var category = ""
     private var query = ""
     private var focusId: String? = null
@@ -93,12 +93,12 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         row.addView(button, LinearLayout.LayoutParams(0, -1, weight).apply { setMargins(0, dp(3), dp(6), dp(3)) })
     }
     init {
-        view.orientation = LinearLayout.VERTICAL; view.setBackgroundColor(bg); view.setPadding(dp(24), dp(12), dp(24), dp(10))
+        view.orientation = LinearLayout.VERTICAL; view.setBackgroundColor(bg); TvSafeArea.apply(view, activity, store.prefs.getBoolean("wide_safe_area", false))
         val top = row(42)
         top.addView(text(27f, accent).apply { setText(R.string.guide_title); setTypeface(null, Typeface.BOLD) }, LinearLayout.LayoutParams(0, -1, 1f))
         clock = text(14f, muted).apply { text = date.format(Date()) }; top.addView(clock)
         val tools = row(46)
-        listOf("Français", "★ Favoris", "Toutes", "Adultes").forEach { label ->
+        listOf("★ Favoris", "Québec", "Toutes", "Adultes").forEach { label ->
             val b = button(label) { filter = label; category = ""; applyFilters(); grid.requestFocus() }
             filters[label] = b; add(tools, b)
         }
@@ -125,12 +125,13 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         grid.onFavourite = { options() }
         view.addView(grid, LinearLayout.LayoutParams(-1, 0, 1f))
         for (i in 0 until tools.childCount) tools.getChildAt(i).nextFocusDownId = grid.id
-        grid.nextFocusUpId = filters.getValue("Français").id
+        grid.nextFocusUpId = filters.getValue("★ Favoris").id
         grid.nextFocusDownId = grid.id
         updateClock()
     }
     fun resume(channelId: String? = null) {
         active = true
+        TvSafeArea.apply(view, activity, store.prefs.getBoolean("wide_safe_area", false))
         if (channelId != null) { focusId = channelId; filter = "Toutes"; category = ""; query = "" }
         if (all.isEmpty() || System.currentTimeMillis() - loadedAt > 300000) loadCatalogue()
         else { applyFilters(); grid.refresh(); loadVisible() }
@@ -157,12 +158,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
                 result.onSuccess { (cats, entries) ->
                     categories = cats; all = entries; loadedAt = System.currentTimeMillis()
                     if (initialFilter) {
-                        filter = when {
-                            focusId != null -> "Toutes"
-                            all.any { isFavourite(it) } -> "★ Favoris"
-                            all.any { e -> CatalogRules.matches("Français", categoryName(e), e.name) } -> "Français"
-                            else -> "Toutes"
-                        }; initialFilter = false
+                        filter = if(focusId != null) "Toutes" else "★ Favoris"; initialFilter = false
                     }
                     applyFilters()
                 }.onFailure {
@@ -180,7 +176,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         val shown = all.filter { e ->
             (category.isEmpty() || e.category == category) && when(filter) {
                 "★ Favoris" -> isFavourite(e)
-                "Français" -> CatalogRules.matches("Français", categoryName(e), e.name)
+                "Québec" -> CatalogRules.isQuebecLive(categoryName(e), e.name)
                 "Adultes" -> CatalogRules.isAdult(categoryName(e), e.name, e.adult)
                 else -> true
             } && (terms.isEmpty() || CatalogRules.normalize("${e.name} ${e.number} ${categoryName(e)}").contains(terms))
@@ -219,7 +215,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         title.text = p?.title ?: if (entry == null) "Aucune chaîne dans cette sélection" else entry.name
         description.text = p?.let {
             "${time.format(Date(it.start))} – ${time.format(Date(it.end))} · ${if(it.isNow(now)) "En cours" else if(it.start > now) "À venir" else "Terminé"} · ${it.description.ifBlank { "OK pour les détails" }}"
-        } ?: if(entry == null) "Choisis Toutes, change de catégorie ou efface la recherche." else grid.status(entry)
+        } ?: if(entry == null && filter == "★ Favoris") "Choisis Toutes, puis Menu → Ajouter aux favoris sur une chaîne." else if(entry == null) "Choisis Toutes, change de catégorie ou efface la recherche." else grid.status(entry)
     }
     private fun updateClock() {
         clock.text = date.format(Date(grid.windowStart))
@@ -250,8 +246,8 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
                 1 -> grid.selectedProgramme()?.let { details(entry, it) }
                 2 -> toggleFavourite()
                 3 -> grid.now()
-                4 -> AlertDialog.Builder(activity).setTitle("Quelles chaînes ?").setItems(arrayOf("Français", "★ Favoris", "Toutes", "Adultes")) { _, i ->
-                    filter = listOf("Français", "★ Favoris", "Toutes", "Adultes")[i]; category = ""; applyFilters(); grid.requestFocus()
+                4 -> AlertDialog.Builder(activity).setTitle("Quelles chaînes ?").setItems(arrayOf("★ Favoris", "Québec", "Toutes", "Adultes")) { _, i ->
+                    filter = listOf("★ Favoris", "Québec", "Toutes", "Adultes")[i]; category = ""; applyFilters(); grid.requestFocus()
                 }.setNegativeButton("Retour", null).show()
                 5 -> chooseCategory()
                 6 -> search()
@@ -276,7 +272,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     }
     private fun help() {
         AlertDialog.Builder(activity).setTitle("Le guide en 3 gestes")
-            .setMessage("1. ↑ ↓ : choisis une chaîne.\n2. ← → : regarde ce qui joue plus tard.\n3. OK : regarde l’émission en cours ou ouvre les détails d’une émission à venir.\n\nMenu ouvre les options : favoris, recherche et retour à maintenant.\n\n★ Favoris retrouve tes chaînes préférées. Catégories et Rechercher t’aident à trouver une chaîne.\n\nRetour ramène à l’accueil. Après la lecture, Retour retrouve ta place dans le guide.\n\nL’horaire vient de ton fournisseur. Une chaîne reste accessible même sans horaire. Jusqu’à 12 h à venir, selon les données reçues.")
+            .setMessage("1. ↑ ↓ : choisis une chaîne.\n2. ← → : regarde ce qui joue plus tard.\n3. OK : regarde l’émission en cours ou ouvre les détails d’une émission à venir.\n\nMenu ouvre les options : favoris, recherche et retour à maintenant.\n\n★ Favoris est le premier onglet. Québec regroupe les chaînes québécoises; Toutes conserve le catalogue complet.\n\nRetour ramène à l’accueil. Après la lecture, Retour retrouve ta place dans le guide.\n\nL’horaire vient de ton fournisseur. Une chaîne reste accessible même sans horaire. Jusqu’à 12 h à venir, selon les données reçues.")
             .setPositiveButton("C’est compris", null).show()
     }
     private fun demoCatalogue(): Pair<List<Category>, List<Entry>> {

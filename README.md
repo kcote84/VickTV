@@ -6,28 +6,23 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.4.3
+## Version 0.5.0
 
-La version **0.4.3 (code 8)** simplifie l’accueil : des icônes, des libellés courts et de grandes zones de sélection. **Guide TV**, **Favoris** et **Direct** sont en premier, suivis de **Films**, **Séries**, **Français** et **Sports**. **Direct** ouvre toutes les chaînes. **Adultes 18+** et **Réglages** restent au bas de l’accueil.
+La version **0.5.0 (code 9)** garde une bordure de sécurité autour des boutons : **5 %**, ou **8 %** dans **Réglages → Bordure TV** pour une télé qui rogne davantage l’image.
 
-Le guide utilise l’espace libéré par le retrait de la barre de boutons du bas et de sa ligne de raccourcis. Les commandes restent accessibles à la télécommande : gauche/droite pour l’horaire; **Menu** pour les favoris et le retour à maintenant; **? Aide** pour les explications.
+Le guide commence par **★ Favoris**. Le raccourci **Québec** du guide et de l’accueil sélectionne les chaînes locales francophones reconnues; **Direct** et **Toutes** conservent le catalogue complet.
 
-Le thème rose, les filtres, le diagnostic HTTP et les réglages audio sont conservés. Le numéro HTTP affiché en cas d’erreur HLS et le bouton **Passer en MPEG-TS** aident au diagnostic, sans garantir le HLS du fournisseur ni d’autres pistes audio. Le dépôt, le fichier APK, le paquet Android et la signature initiale sont conservés.
+**Films** et **Séries** affichent des galeries de pochettes avec recherche et favoris. Le catalogue est directement en français, de France, du Québec ou doublé, sans filtres à choisir. Les titres indiqués VOSTFR sont exclus. Le classement dépend des noms du fournisseur et ne vérifie pas les pistes audio de chaque œuvre. Une pochette absente garde un pictogramme et son titre.
 
-Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jour** lorsque la version est disponible dans Releases.
+Pendant la lecture, les commandes se superposent à l’image plein écran sans la réduire. Les réglages audio et les mises à jour restent dans **Réglages**. La narration intégrée à une unique piste fournie ne peut pas être retirée par l’application.
 
-**Adultes 18+**, à l’accueil, donne accès aux chaînes, films et séries correspondants. Le guide propose aussi un filtre **Adultes**. Le regroupement reconnaît le marquage `is_adult` du fournisseur et les catégories/noms explicites (Adultes, XXX, 18+, etc.). Il dépend des données Xtream et ne constitue pas un contrôle parental : les contenus restent aussi accessibles dans Toutes, les catégories originales et les favoris. Les autres filtres linguistiques gardent leur comportement habituel.
+**Adultes 18+** reste disponible à l’accueil et dans le guide. Le regroupement utilise les métadonnées Xtream et ne constitue pas un contrôle parental.
 
-- APK de mise à jour conservé dans le stockage privé, hors cache, pour résister aux purges du système en cas de manque d’espace.
-- Lecture plein écran lorsque les commandes sont masquées; Retour du lecteur vers la liste, la recherche et la sélection précédentes, sans recharger le catalogue.
-- Bouton **Options / Favoris** et touche Menu dans les listes; suppression immédiate d’un favori dans sa section.
-- Filtre **Langue : Tous / Français / Québec** dans Films et Séries, combinable avec les catégories originales. Ce classement se base sur les noms du fournisseur; il ne vérifie pas la langue des pistes ni l’origine d’une œuvre. « Canada » seul ne classe plus un contenu comme francophone.
-- **Guide TV** dès l’accueil et dans le lecteur : cinq chaînes visibles, grille de deux heures, émission en cours, descriptions, Français, Favoris, catégories et recherche par nom ou numéro. Jusqu’à douze heures à venir selon les données Xtream. Les heures affichées suivent le fuseau du Fire Stick.
-- Préférences **Automatique / Stéréo / Cinéma 5.1**. L’option **Éviter l’audiodescription** est activée par défaut : elle écarte les pistes identifiées comme descriptives si une piste normale existe, y compris si une piste descriptive avait été mémorisée. Le choix manuel reste possible; **Choix automatique** efface la préférence du contenu. Une narration non identifiée ou intégrée au seul flux ne peut pas être retirée.
+![Accueil avec bordure TV](docs/images/home-vicktv-simple.png)
 
-![Accueil simplifié](docs/images/home-vicktv-simple.png)
+![Guide TV — données fictives de test](docs/images/guide-tv-simple.png)
 
-![Guide TV agrandi — horaire fictif du mode démo](docs/images/guide-tv-simple.png)
+![Films — pochettes fictives de test](docs/images/films-vicktv.png)
 
 ## Le guide, en trois gestes
 
@@ -35,9 +30,9 @@ Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jo
 2. **OK** regarde la chaîne si l’émission est en cours. Sur une émission à venir, OK ouvre les détails et propose de regarder la chaîne **en direct**.
 3. **Retour** retrouve sa place dans le guide après la lecture; un autre Retour ramène à l’accueil.
 
-Pour garder une chaîne : **Menu → Ajouter aux favoris**. **★ Favoris** ne montre ensuite que ces chaînes. Menu donne aussi accès à **Français / Favoris / Toutes**, à la recherche et à **Revenir à maintenant**, depuis n’importe quelle ligne. **? Aide** explique les commandes dans l’application.
+Pour garder une chaîne : **Menu → Ajouter aux favoris**. **★ Favoris** ne montre ensuite que ces chaînes. Menu donne aussi accès à **Favoris / Québec / Toutes**, à la recherche et à **Revenir à maintenant**, depuis n’importe quelle ligne. **? Aide** explique les commandes dans l’application.
 
-**Rechercher** trouve un nom ou un numéro dans la sélection actuelle. Choisir **Toutes**, puis **Rechercher → Tout effacer** pour repartir de toutes les chaînes. **Catégories** reprend les groupes du fournisseur. À l’ouverture, le guide privilégie les favoris existants, sinon les chaînes françaises, sinon toutes les chaînes.
+**Rechercher** trouve un nom ou un numéro dans la sélection actuelle. Choisir **Toutes**, puis **Rechercher → Tout effacer** pour repartir de toutes les chaînes. **Catégories** reprend les groupes du fournisseur. À la première ouverture, le guide sélectionne toujours ★ Favoris. Si la liste est vide, choisir Toutes, puis ajouter une chaîne avec Menu. Les retours conservent la sélection précédente; ouvrir le guide depuis une chaîne montre cette chaîne dans Toutes.
 
 Sans compte, le guide montre un **horaire de démonstration fictif**, clairement identifié. Avec un compte, les titres et descriptions viennent uniquement du fournisseur. Une chaîne sans horaire reste accessible avec OK; une case vide n’invente aucune émission. Il n’y a ni enregistrement, ni rattrapage, ni guide sur plusieurs jours.
 
@@ -54,8 +49,8 @@ Sans compte, le guide montre un **horaire de démonstration fictif**, clairement
 ## Navigation
 
 - Flèches : naviguer; OK : ouvrir ou regarder; Retour : revenir.
-- Accueil : Guide TV, Français, Sports, Films, Séries, Favoris, Toutes les chaînes et Adultes 18+.
-- Les regroupements Français/Sports utilisent les noms des catégories et chaînes du fournisseur; ils peuvent être imparfaits. Le bouton **Catégories** donne accès au catalogue original.
+- Accueil : Guide TV, Favoris, Direct, Films, Séries, Québec, Sports, Adultes 18+ et Réglages.
+- Les regroupements Québec/Sports utilisent les noms des catégories et chaînes du fournisseur; ils peuvent être imparfaits. Le bouton **Catégories** dans le direct donne accès aux groupes originaux.
 - Appui long sur OK dans une liste : ajouter/retirer un favori.
 - Pendant la lecture : **Audio / Son** ou touche Menu de la télécommande pour choisir une piste.
 - **Infos** décrit le flux reçu, sans prétendre mesurer la sortie HDMI.
