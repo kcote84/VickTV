@@ -1,7 +1,7 @@
 {
-  "versionCode": 5,
-  "versionName": "0.4.0",
-  "notes": "# VicTV 0.4.0\n\n- Thème rose bonbon et prune sur l’accueil, le guide, les listes, les contrôles de lecture et les éléments Android. Focus contrasté et caractères lisibles conservés.\n- Nouveau logo cartoon VicTV : télévision rétro rose, clin d’œil humoristique à une poitrine en bustier et petit cœur. Icône et bannière intégrées au lanceur Android/Fire TV.\n- Section Adultes 18+ à l’accueil pour les chaînes, films et séries du fournisseur; filtre Adultes dans le guide et ses options à la télécommande.\n- Reconnaissance du marquage Xtream `is_adult`, des catégories et des noms explicites. Les simples titres Adult Swim ou Sex Education ne sont pas classés par leur nom comme pornographiques. Le classement reste dépendant du fournisseur.\n- Choisir une catégorie dans la section Adultes garde le filtre Adultes. Favoris, recherche et filtres de langue restent disponibles.\n\nLe guide multichaîne, l’aide, les réglages audio et la mise à jour GitHub sont conservés. Même paquet `ca.vicktv`, même clé originale, version 0.4.0 / code 5. Les noms du dépôt et du fichier distribué restent VickTV pour assurer la continuité des mises à jour.\n\nLes captures proviennent d’un émulateur Android au format TV; aucune validation Edge, Fire OS ou HDMI 5.1 sur matériel réel n’est revendiquée. Aucun contenu ni abonnement fourni. Adultes 18+ est un regroupement du catalogue, pas un verrou parental.\n",
-  "apkUrl": "https://github.com/kcote84/VickTV/releases/download/v0.4.0/VickTV.apk",
-  "sha256": "c481da935e6604fcd14814ba17b07dade1b0f2bb0aca4ce2d167988cf11ed18a"
+  "versionCode": 6,
+  "versionName": "0.4.1",
+  "notes": "# VickTv 0.4.1\n\n- Correction du nom : VickTv, avec le k, dans l’application, l’icône et la bannière de lancement.\n- Thème rose, guide TV, favoris, section Adultes et réglages audio conservés.\n- Même paquet et même clé de signature : mise à jour sur place, sans désinstallation.\n",
+  "apkUrl": "https://github.com/kcote84/VickTV/releases/download/v0.4.1/VickTV.apk",
+  "sha256": "944673630f7edd837a727198de397170de96552c61471307b3fbc5ccc0bc9ca2"
 }

@@ -131,7 +131,7 @@ class MainActivity : Activity() {
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(34), dp(18), dp(34), dp(14)); setBackgroundColor(bg) }
         setContentView(root)
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        header.addView(label("VicTV", 28f, accent).apply { setTypeface(null, Typeface.BOLD) }, LinearLayout.LayoutParams(0, dp(48), 1f))
+        header.addView(label("VickTv", 28f, accent).apply { setTypeface(null, Typeface.BOLD) }, LinearLayout.LayoutParams(0, dp(48), 1f))
         header.addView(label("POUR VICKY, AVEC AMOUR", 12f, muted))
         root.addView(header)
         root.addView(label(subtitle, 16f, muted))
@@ -193,7 +193,7 @@ class MainActivity : Activity() {
     private fun demo(section: String) {
         page("demo", "$section · Mode démo")
         root.addView(label("Ton espace $section", 28f))
-        root.addView(label("Les vrais contenus apparaîtront après la connexion à ton compte Xtream.\nAucune chaîne n’est fournie avec VicTV.", 18f, muted))
+        root.addView(label("Les vrais contenus apparaîtront après la connexion à ton compte Xtream.\nAucune chaîne n’est fournie avec VickTv.", 18f, muted))
         addButton(root, "Connecter mon compte Xtream") { login() }
         addButton(root, "Retour à l’accueil") { home() }
     }
@@ -374,7 +374,7 @@ class MainActivity : Activity() {
             val chrome = if(visibility == View.VISIBLE || row.hasFocus()) View.VISIBLE else View.GONE
             heading.visibility = chrome; row.visibility = chrome
         })
-        val factory = DefaultMediaSourceFactory(DefaultHttpDataSource.Factory().setUserAgent("VicTV/${BuildConfig.VERSION_NAME}").setConnectTimeoutMs(15000).setReadTimeoutMs(20000).setAllowCrossProtocolRedirects(false))
+        val factory = DefaultMediaSourceFactory(DefaultHttpDataSource.Factory().setUserAgent("VickTv/${BuildConfig.VERSION_NAME}").setConnectTimeoutMs(15000).setReadTimeoutMs(20000).setAllowCrossProtocolRedirects(false))
         val p = ExoPlayer.Builder(this).setMediaSourceFactory(factory).build(); player = p; video.player = p
         p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setPreferredAudioLanguage("fr").setMaxAudioChannelCount(if(audioMode() == "stereo") 2 else Int.MAX_VALUE).build()
         p.addListener(object : Player.Listener {
@@ -430,8 +430,8 @@ class MainActivity : Activity() {
         if(busy) return
         val updater = Updater(this)
         async("Recherche d’une mise à jour…", { updater.check() }) { update ->
-            if(update == null) message("VicTV ${BuildConfig.VERSION_NAME}", "Tu as la dernière version publiée.")
-            else AlertDialog.Builder(this).setTitle("VicTV ${update.version}").setMessage(update.notes).setNegativeButton("Plus tard", null).setPositiveButton("Télécharger") { _, _ ->
+            if(update == null) message("VickTv ${BuildConfig.VERSION_NAME}", "Tu as la dernière version publiée.")
+            else AlertDialog.Builder(this).setTitle("VickTv ${update.version}").setMessage(update.notes).setNegativeButton("Plus tard", null).setPositiveButton("Télécharger") { _, _ ->
                 async("Téléchargement et vérification…", { updater.download(update) }) { file -> pendingInstall = file; installUpdate() }
             }.show()
         }
@@ -446,8 +446,8 @@ class MainActivity : Activity() {
         }
         val updater = Updater(this)
         if(!updater.canInstall()) AlertDialog.Builder(this).setTitle("Autoriser la mise à jour")
-            .setMessage("Autorise VicTV à installer des applications. Reviens ensuite dans Réglages et choisis Installer la mise à jour téléchargée.")
-            .setNegativeButton("Plus tard", null).setPositiveButton("Ouvrir les réglages") { _, _ -> runCatching { updater.requestPermission() }.onFailure { message("Autorisation", "Va dans Ma Fire TV → Options développeur → Installer des applications inconnues, puis autorise VicTV.") } }.show()
+            .setMessage("Autorise VickTv à installer des applications. Reviens ensuite dans Réglages et choisis Installer la mise à jour téléchargée.")
+            .setNegativeButton("Plus tard", null).setPositiveButton("Ouvrir les réglages") { _, _ -> runCatching { updater.requestPermission() }.onFailure { message("Autorisation", "Va dans Ma Fire TV → Options développeur → Installer des applications inconnues, puis autorise VickTv.") } }.show()
         else runCatching { updater.install(file) }.onFailure { message("Installation", "L’installateur n’a pas pu s’ouvrir sur cet appareil.") }
     }
     private fun <T> async(status: String, task: () -> T, success: (T) -> Unit) {
@@ -468,7 +468,7 @@ class MainActivity : Activity() {
                         error is java.io.IOException -> "Connexion impossible. Vérifie Internet et le serveur. Pour une mise à jour, vérifie qu’une release GitHub existe."
                         else -> error.message?.takeIf { !it.contains("http") && !it.contains("password") } ?: "L’opération n’a pas pu être terminée."
                     }
-                    message("VicTV", text)
+                    message("VickTv", text)
                     if(screen == "browse" || screen == "episodes") addButton(root, "Retour à l’accueil") { home() }
                 }
             }

@@ -402,3 +402,12 @@ Le manifeste stable propose bien le code 5. Les trois fichiers sont télécharg�
 L’ajout d’un favori depuis le guide Adultes est confirmé dans le guide et dans la section générale Favoris. L’écran système Android affiche correctement le nom VicTV et l’icône complète, vérifiés visuellement. Les captures automatiques attendent la fin des animations de dialogue avant de conclure sur les actions; un premier essai trop rapide avec Retour avait interrompu le clic de la fixture.
 
 Prochaine validation sur matériel : mettre à jour un Fire Stick via Réglages → Vérifier les mises à jour, vérifier la nouvelle icône/bannière dans son lanceur, la lisibilité du rose et le classement Adultes avec le catalogue Edge. Le classement dépend des données du fournisseur; aucun horaire ni contenu adulte réel n’a été utilisé pour les essais. Les réglages audio et les limites de validation HDMI précédentes restent inchangés.
+
+
+## 17. Correction du nom — 0.4.1
+
+Le propriétaire précise l’orthographe **VickTv**, avec le k, au lieu de VicTV. Le nom visible du manifeste, l’accueil, les dialogues et les instructions d’installation sont corrigés. L’icône et la bannière sont retouchées avec imagegen uniquement pour corriger le mot-symbole en VickTv. Le rose, le dessin et les fonctions de 0.4.0 sont conservés.
+
+Version préparée : 0.4.1 / code 6. Le paquet `ca.vicktv`, le dépôt `kcote84/VickTV`, le fichier distribué `VickTV.apk`, la signature et les données locales conservent leur identité. Résultats du build et publication à consigner après vérification.
+
+Validation locale : 20 tests réussis, lint sans erreur, assembleRelease réussi avec la clé initiale. APK de 6960075 octets, SHA-256 `944673630f7edd837a727198de397170de96552c61471307b3fbc5ccc0bc9ca2`; tous les morceaux remplacés et reconstruction conforme au manifeste. Aucune nouvelle fonctionnalité ni nouveau test matériel dans ce correctif de nom.

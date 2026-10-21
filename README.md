@@ -1,4 +1,4 @@
-# VicTV
+# VickTv
 
 Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus, de gros boutons et un petit mot d’amour avant la soirée.
 
@@ -6,9 +6,9 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.4.0
+## Version 0.4.1
 
-La version **0.4.0 (code 5)** habille l’app en rose bonbon et prune, avec un nouveau logo cartoon **VicTV**, une icône et une bannière pour le lanceur TV. Elle ajoute la section **Adultes 18+** et conserve la clé de signature initiale. Le dépôt, le fichier APK et le paquet Android conservent leurs noms techniques `VickTV` / `ca.vicktv` pour les mises à jour.
+La version **0.4.1 (code 6)** corrige le nom affiché et les visuels en **VickTv**. Elle habille l’app en rose bonbon et prune, avec un nouveau logo cartoon **VickTv**, une icône et une bannière pour le lanceur TV. Elle ajoute la section **Adultes 18+** et conserve la clé de signature initiale. Le dépôt, le fichier APK et le paquet Android conservent leurs noms techniques `VickTV` / `ca.vicktv` pour les mises à jour.
 
 Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jour** lorsque la version est disponible dans Releases.
 

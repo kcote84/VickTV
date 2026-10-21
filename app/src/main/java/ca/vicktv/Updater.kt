@@ -45,7 +45,7 @@ class Updater(private val activity: Activity) {
             val installed = pm.getPackageInfo(activity.packageName, PackageManager.GET_SIGNATURES)
             require(archive.packageName == activity.packageName && archive.versionCode == update.code) { "Version ou application incorrecte." }
             val expected = installed.signatures?.map { it.toCharsString() }?.toSet()
-            require(!expected.isNullOrEmpty() && archive.signatures?.map { it.toCharsString() }?.toSet() == expected) { "La signature de cette mise à jour ne correspond pas à VickTV." }
+            require(!expected.isNullOrEmpty() && archive.signatures?.map { it.toCharsString() }?.toSet() == expected) { "La signature de cette mise à jour ne correspond pas à VickTv." }
             if (target.exists()) target.delete()
             require(partial.renameTo(target)) { "Impossible de préparer la mise à jour." }
             return target
