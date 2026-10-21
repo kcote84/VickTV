@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version préparée : **0.3.0**, `versionCode = 4`, guide multichaîne (section 15). Dernière version distribuée avant ce chantier : **0.2.1**, `versionCode = 3`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour le guide actuel.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée de référence : **0.3.0**, `versionCode = 4`, guide multichaîne (section 15). Version précédente : **0.2.1**, `versionCode = 3`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour le guide actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -346,3 +346,12 @@ Validation locale de l’APK définitif : **16 tests réussis**, `lintDebug` san
 Sur émulateur API 35, format TV 960 × 540 dp : grille et aide inspectées visuellement; navigation D-pad, défilement au-delà de cinq chaînes, programme futur et retour, Français excluant une chaîne anglaise, catégories Sports, recherche du numéro 108, ajout/retrait immédiat et état Favoris vide, chargement de dates locales avec fuseau serveur, endpoint complet indisponible et repli court, chaîne sans horaire, erreur HTTP par chaîne sans dialogue bloquant. Le serveur synthétique confirme que seules cinq chaînes sont demandées au début, puis les nouvelles lignes à mesure du défilement. APK installé par-dessus 0.2.1 avec la même clé; un favori de laboratoire et le compte de test survivent à une nouvelle installation du candidat. Pas d’essai Edge ni Fire Stick.
 
 La lecture de test depuis le guide retrouve les deux pistes AAC; après application asynchrone de la sélection, la piste « Français normal » est sélectionnée et « Éviter l’audiodescription : oui » est confirmé dans Réglages. Un menu ouvert immédiatement au premier changement de pistes peut encore refléter la sélection précédente; attendre la stabilisation avant de conclure sur la piste active. Une capture du guide démo de l’APK final est conservée dans `docs/images/guide-tv-demo.png` (émulateur Android en format TV).
+
+
+### Publication 0.3.0
+
+La [PR nº 3](https://github.com/kcote84/VickTV/pull/3) est fusionnée dans `main` au commit `bd255a48e90002f2356e6375a23fbe4f83e89817`, après réussite du contrôle Android [39662957330](https://github.com/kcote84/VickTV/actions/runs/39662957330). Le workflow de publication [39663272115](https://github.com/kcote84/VickTV/actions/runs/39663272115) a réussi et créé la release [v0.3.0](https://github.com/kcote84/VickTV/releases/tag/v0.3.0), avec APK, manifeste et SHA256SUMS.
+
+Le manifeste stable `releases/latest/download/update.json` et l’APK ont été téléchargés **sans authentification** après publication : version 0.3.0, code 4, 4 343 635 octets, empreinte et octets identiques au fichier local testé. Le fichier SHA256SUMS concorde et `apksigner verify` confirme de nouveau le certificat original sur l’APK téléchargé. Les copies extraites de signature sont supprimées; le ZIP privé original reste hors dépôt.
+
+Un dernier essai sur le candidat final vérifie la borne de navigation au lendemain, le retour à Maintenant et l’accès D-pad aux filtres depuis un guide Favoris vide. Le déploiement sur les deux Fire Stick n’a pas été effectué. Première action matérielle : Réglages → Vérifier les mises à jour sur une seule TV, puis vérifier Guide TV, favoris et données horaires Edge avant de mettre à jour la deuxième.
