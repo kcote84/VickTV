@@ -253,7 +253,7 @@ Après ces essais, corriger les problèmes bloquants de lecture, audio ou naviga
 | Moyenne | Aucun accès à l’horaire des émissions | `get_short_epg`, limite demandée de 24 entrées; décodage Base64, tri, exclusion des heures incohérentes, émission courante et descriptions. Le fournisseur peut retourner moins d’entrées ou aucun guide. Pas de grille multichaîne. |
 | Moyenne | Films/Séries sans raccourci français ou québécois; « Canada » incluait des contenus anglophones | Filtres Tous/Français/Québec combinés aux catégories et à la recherche. Reconnaissance VF/VFQ et noms francophones. Classement heuristique, pas une preuve de langue audio ni d’origine géographique. |
 | Moyenne | Une réponse réseau d’une ancienne page pouvait modifier l’état occupé de la nouvelle page | L’état occupé est réinitialisé au changement de page et les réponses obsolètes n’y touchent plus. Les requêtes ne sont pas encore annulées au changement de page. |
-| Moyenne | Les workflows de publication ne vérifiaient pas explicitement le certificat initial et gardait les premières notes par défaut dans le manifeste | Vérification `apksigner` et certificat SHA-256 initial dans les deux voies; release existante ignorée avant de comparer les sources à une ancienne distribution; ajout de `--notes-file` au générateur du manifeste. |
+| Moyenne | Les workflows de publication ne vérifiaient pas explicitement le certificat initial et gardaient les premières notes par défaut dans le manifeste | Vérification `apksigner` et certificat SHA-256 initial dans les deux voies; release existante ignorée avant de comparer les sources à une ancienne distribution; ajout de `--notes-file` au générateur du manifeste. |
 
 Le certificat public initial vérifié depuis l’APK téléchargé est `6a09826ceee768d04367e205731a23a1b03a791c25b150c4cf232db2274d2e16`. Il ne s’agit pas d’une clé privée. Aucun changement de visibilité ou remplacement de la release 0.1.0 effectué pendant cette révision.
 
@@ -270,3 +270,15 @@ Le certificat public initial vérifié depuis l’APK téléchargé est `6a09826
 ### Suite après révision
 
 Retirer les mentions provisoires « en préparation / non publié » des notes au moment de la publication. Retrouver la sauvegarde de la clé initiale, compiler 0.2.0 avec cette clé, exécuter `apksigner verify`, puis préparer la distribution et tester la mise à jour sur un seul Fire Stick. `distribution/` conserve les fichiers historiques 0.1.0; ne pas les publier comme 0.2.0. Une grille EPG multichaîne, les affiches/synopsis VOD et la reprise persistante restent des améliorations distinctes.
+
+## 13. Préparation de la distribution 0.2.0 avec la clé originale
+
+La sauvegarde privée fournie par le propriétaire a été récupérée hors Git. Le certificat de la clé a été exporté en mémoire et comparé au SHA-256 initial : correspondance exacte. Les mots de passe sont chargés dans l’environnement du seul processus de compilation; aucun secret n’est ajouté à GitHub.
+
+`testDebugUnitTest lintDebug assembleRelease --no-daemon` a réussi. L’APK release 0.2.0 (code 2, paquet `ca.vicktv`) passe `apksigner verify --verbose`; son certificat est identique à celui de 0.1.0. Taille : **4 319 447 octets**. SHA-256 : `a17ba6ed169eee96c8f5ba890bb5a39f29785a669c49e2a55ab0d8b437a8f404`.
+
+Les 15 morceaux de `distribution/` sont remplacés intégralement et leur concaténation est comparée à l’APK signé; le manifeste et SHA256SUMS sont mis à jour. Cette voie de publication n’envoie pas la clé privée aux workflows. Le suivi de la section 12 décrit le premier blocage, désormais résolu par la sauvegarde originale.
+
+La mise à jour signée a été testée sur émulateur Android API 35 : installation de l’APK public 0.1.0, connexion à un compte Xtream synthétique local, désactivation des messages et ajout d’un favori, puis `adb install -r` de 0.2.0. L’installation réussit sans désinstallation : compte, réglage et favori sont conservés. Ce scénario prouve la compatibilité de signature et des données sur émulateur; il ne valide pas le parcours d’installation Fire OS.
+
+La publication GitHub et le contrôle du bouton de mise à jour restent à terminer. Les essais Fire Stick et Edge demeurent requis.
