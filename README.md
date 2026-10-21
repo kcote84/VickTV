@@ -6,11 +6,13 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.4.2
+## Version 0.4.3
 
-La version **0.4.2 (code 7)** affiche le numéro HTTP précis lorsqu’une requête de lecture échoue, avec une explication et un bouton **Passer en MPEG-TS** pour les erreurs HLS. Ce bouton relance la chaîne et conserve MPEG-TS pour tout le direct. Les erreurs 401, 403, 404 et 410 sont signalées sans attendre trois reconnexions. Aucun lien de flux ni identifiant n’est affiché dans ce diagnostic.
+La version **0.4.3 (code 8)** simplifie l’accueil : des icônes, des libellés courts et de grandes zones de sélection. **Guide TV**, **Favoris** et **Direct** sont en premier, suivis de **Films**, **Séries**, **Français** et **Sports**. **Direct** ouvre toutes les chaînes. **Adultes 18+** et **Réglages** restent au bas de l’accueil.
 
-Cette amélioration aide à identifier la panne; elle ne garantit pas que le fournisseur propose du HLS ou d’autres pistes audio. Le thème rose, le guide, les favoris, le classement Adultes et les réglages audio sont conservés. Le dépôt, le fichier APK et le paquet Android gardent leurs noms techniques `VickTV` / `ca.vicktv` et la signature initiale.
+Le guide utilise l’espace libéré par le retrait de la barre de boutons du bas et de sa ligne de raccourcis. Les commandes restent accessibles à la télécommande : gauche/droite pour l’horaire; **Menu** pour les favoris et le retour à maintenant; **? Aide** pour les explications.
+
+Le thème rose, les filtres, le diagnostic HTTP et les réglages audio sont conservés. Le numéro HTTP affiché en cas d’erreur HLS et le bouton **Passer en MPEG-TS** aident au diagnostic, sans garantir le HLS du fournisseur ni d’autres pistes audio. Le dépôt, le fichier APK, le paquet Android et la signature initiale sont conservés.
 
 Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jour** lorsque la version est disponible dans Releases.
 
@@ -23,7 +25,9 @@ Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jo
 - **Guide TV** dès l’accueil et dans le lecteur : cinq chaînes visibles, grille de deux heures, émission en cours, descriptions, Français, Favoris, catégories et recherche par nom ou numéro. Jusqu’à douze heures à venir selon les données Xtream. Les heures affichées suivent le fuseau du Fire Stick.
 - Préférences **Automatique / Stéréo / Cinéma 5.1**. L’option **Éviter l’audiodescription** est activée par défaut : elle écarte les pistes identifiées comme descriptives si une piste normale existe, y compris si une piste descriptive avait été mémorisée. Le choix manuel reste possible; **Choix automatique** efface la préférence du contenu. Une narration non identifiée ou intégrée au seul flux ne peut pas être retirée.
 
-![Guide TV rose — horaire fictif du mode démo](docs/images/guide-tv-rose.png)
+![Accueil simplifié](docs/images/home-vicktv-simple.png)
+
+![Guide TV agrandi — horaire fictif du mode démo](docs/images/guide-tv-simple.png)
 
 ## Le guide, en trois gestes
 
@@ -31,7 +35,7 @@ Les mises à jour sont proposées dans **Réglages → Vérifier les mises à jo
 2. **OK** regarde la chaîne si l’émission est en cours. Sur une émission à venir, OK ouvre les détails et propose de regarder la chaîne **en direct**.
 3. **Retour** retrouve sa place dans le guide après la lecture; un autre Retour ramène à l’accueil.
 
-Pour garder une chaîne : **Menu → Ajouter aux favoris**, ou le bouton **☆ Ajouter favori**. **★ Favoris** ne montre ensuite que ces chaînes. Menu donne aussi accès à **Français / Favoris / Toutes**, à la recherche et à **Revenir à maintenant**, depuis n’importe quelle ligne. **? Aide** explique les commandes dans l’application.
+Pour garder une chaîne : **Menu → Ajouter aux favoris**. **★ Favoris** ne montre ensuite que ces chaînes. Menu donne aussi accès à **Français / Favoris / Toutes**, à la recherche et à **Revenir à maintenant**, depuis n’importe quelle ligne. **? Aide** explique les commandes dans l’application.
 
 **Rechercher** trouve un nom ou un numéro dans la sélection actuelle. Choisir **Toutes**, puis **Rechercher → Tout effacer** pour repartir de toutes les chaînes. **Catégories** reprend les groupes du fournisseur. À l’ouverture, le guide privilégie les favoris existants, sinon les chaînes françaises, sinon toutes les chaînes.
 

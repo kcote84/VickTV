@@ -95,7 +95,7 @@ class TvGuideGrid(context: Context) : View(context) {
                 val direction = if (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_CHANNEL_UP) -1 else 1
                 val step = if (keyCode == KeyEvent.KEYCODE_CHANNEL_UP || keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN) 5 else 1
                 val next = (selected + direction * step).coerceIn(0, channels.lastIndex)
-                if (next == selected) return super.onKeyDown(keyCode, event)
+                if (next == selected) return if(direction > 0) true else super.onKeyDown(keyCode, event)
                 selected = next
                 if (selected < first) first = selected
                 if (selected >= first + 5) first = selected - 4

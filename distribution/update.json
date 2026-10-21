@@ -1,7 +1,7 @@
 {
-  "versionCode": 7,
-  "versionName": "0.4.2",
-  "notes": "# VickTv 0.4.2\n\n- En cas d’erreur de lecture HTTP, affichage du numéro précis (403, 404, etc.) et d’une explication, sans exposer le lien ni les identifiants du compte.\n- En HLS, bouton « Passer en MPEG-TS » pour reprendre la chaîne et conserver ce format pour le direct.\n- Les refus d’accès et ressources absentes (401, 403, 404, 410) sont signalés sans trois reconnexions inutiles.\n- Cette version facilite le diagnostic : elle ne garantit ni le HLS chez le fournisseur ni une autre piste audio sur Zeste.\n- Même paquet et même clé de signature : mise à jour sur place, sans désinstallation.\n",
-  "apkUrl": "https://github.com/kcote84/VickTV/releases/download/v0.4.2/VickTV.apk",
-  "sha256": "45c6d74531d837e6cb886a368b4e513752ca999220b19b9d65cbffcdd435086b"
+  "versionCode": 8,
+  "versionName": "0.4.3",
+  "notes": "# VickTv 0.4.3\n\n- Accueil simplifié : gros boutons avec icônes et libellés courts. Guide TV, Favoris et Direct en premier; Films, Séries, Français et Sports juste en dessous.\n- Guide TV agrandi : retrait de la barre de boutons du bas et de sa ligne de raccourcis.\n- Gauche/droite parcourt toujours l’horaire. Menu permet d’ajouter ou retirer un favori et de revenir à maintenant; « ? Aide » explique les commandes.\n- Adultes 18+ et Réglages restent accessibles à l’accueil. Réglages audio, diagnostic HTTP et mises à jour conservés.\n- Même paquet et même clé de signature : mise à jour sur place, sans désinstallation.\n",
+  "apkUrl": "https://github.com/kcote84/VickTV/releases/download/v0.4.3/VickTV.apk",
+  "sha256": "0f411da6fb5ce48565c79ae171ec74ea31154a931508584499cd64ffe3109aaf"
 }

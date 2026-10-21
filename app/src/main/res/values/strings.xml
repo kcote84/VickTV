@@ -6,6 +6,4 @@
     <string name="guide_loading_hint">Tu peux revenir à l’accueil avec Retour.</string>
     <string name="guide_connection_failed">Le guide n’a pas pu se charger</string>
     <string name="guide_connection_retry">Vérifie Internet, puis choisis Réessayer.</string>
-    <string name="guide_hint">↑↓ Chaînes  ·  ←→ Émissions  ·  OK Choisir  ·  Menu Options  ·  Retour Accueil</string>
-    <string name="guide_hint_demo">DÉMO · ↑↓ Chaînes  ·  ←→ Émissions  ·  OK Choisir  ·  Menu Options  ·  Retour Accueil</string>
 </resources>
