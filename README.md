@@ -6,7 +6,15 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.7.1
+## Version 0.8.0
+
+**Changer de chaîne sans quitter sa vidéo.** Pendant le direct, **Menu** sur la télécommande ou le bouton **Guide TV** ouvre un mini-guide à droite, par-dessus la vidéo plein écran. **Favoris** est toujours le premier onglet; Québec et Toutes permettent de parcourir les autres chaînes. L’émission en cours et la suivante apparaissent lorsque le fournisseur donne l’horaire.
+
+**↑ ↓** choisit une chaîne; **OK** la lance et ferme le panneau. **←** rejoint les onglets même depuis le bas de la liste; **↓** retrouve sa chaîne. Parcourir les chaînes ne change pas la lecture. **Retour** ferme simplement le mini-guide et retrouve la vidéo. La touche Son du lecteur reste disponible pour choisir l’audio; sur un film ou un épisode, Menu conserve son accès au son.
+
+Les favoris enregistrés restent accessibles même si le catalogue du fournisseur ne répond pas. L’horaire absent n’empêche pas de regarder. Le mini-guide conserve des données en mémoire pendant la lecture; il ne remplace pas le guide complet accessible depuis Télé.
+
+![Mini-guide sur la vidéo — source et horaires fictifs de test](docs/images/mini-guide-vicktv.png)
 
 **Moins de boutons, plus de place aux chaînes.** Le guide retire Ajouter/Favori et Maintenant de son en-tête. La barre Options / Favoris disparaît des listes de chaînes et d’épisodes, y compris Adultes et leurs recherches. Ces actions restent accessibles avec Menu sur la télécommande; un appui long sur OK garde aussi l’ajout/retrait de favori dans les listes.
 

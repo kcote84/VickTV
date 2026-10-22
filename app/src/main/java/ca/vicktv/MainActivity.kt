@@ -41,6 +41,11 @@ class MainActivity : Activity() {
     private var current: Entry? = null
     private var player: ExoPlayer? = null
     private var playerView: PlayerView? = null
+    private var playerStage: FrameLayout? = null
+    private var playerHeading: TextView? = null
+    private var playerActions: View? = null
+    private var playerFavourite: Button? = null
+    private var miniGuide: MiniGuideOverlay? = null
     private var playbackPosition = 0L
     private var playbackStarted = false
     private val progressTick = object : Runnable {
@@ -121,7 +126,7 @@ class MainActivity : Activity() {
     override fun onBackPressed() {
         when (screen) {
             "home" -> finish()
-            "player" -> leavePlayer()
+            "player" -> if(miniGuide?.isOpen == true) miniGuide?.close() else leavePlayer()
             "guide" -> if(guideScreen?.handleBack() != true) { releasePlayer(); current = null; home() }
             "episodes" -> seriesOrigin?.let { restoreList(it) } ?: home()
             "details" -> leaveDetails()
@@ -132,7 +137,7 @@ class MainActivity : Activity() {
     }
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (screen == "player" && keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) { player?.let { if (it.isPlaying) it.pause() else it.play() }; return true }
-        if (screen == "player" && keyCode == KeyEvent.KEYCODE_MENU) { audioMenu(); return true }
+        if (screen == "player" && keyCode == KeyEvent.KEYCODE_MENU) { if(current?.kind == "live") openMiniGuide() else audioMenu(); return true }
         if (list?.hasFocus() == true && keyCode == KeyEvent.KEYCODE_MENU) {
             shownEntries.getOrNull(list!!.selectedItemPosition)?.let { entryMenu(it) }; return true
         }
@@ -603,9 +608,33 @@ class MainActivity : Activity() {
         store.remember(WatchProgress(entry, position, duration, WatchHistory.completed(position, duration, ended || p.playbackState == Player.STATE_ENDED), System.currentTimeMillis(), next))
     }
     private fun releasePlayer() {
+        miniGuide?.dispose(); miniGuide = null
+        playerStage = null; playerHeading = null; playerActions = null; playerFavourite = null
         saveProgress(); main.removeCallbacks(progressTick)
         playbackEndDialog?.dismiss(); playbackEndDialog = null
         retryTask?.let { main.removeCallbacks(it) }; retryTask = null; playerView?.player = null; player?.release(); player = null; playerView = null
+    }
+    private fun openMiniGuide() {
+        if(screen != "player" || current?.kind != "live" || player == null) return
+        if(miniGuide?.isOpen == true) { miniGuide?.close(); return }
+        val stage = playerStage ?: return
+        val account = store.account() ?: return
+        playerView?.hideController(); playerHeading?.visibility = View.GONE; playerActions?.visibility = View.GONE
+        if(miniGuide == null) miniGuide = MiniGuideOverlay(this, account, store, stage, { current }, { switchLiveChannel(it) }) {
+            playerView?.hideController(); playerView?.requestFocus()
+        }
+        miniGuide?.open()
+    }
+    private fun switchLiveChannel(entry: Entry) {
+        val p = player ?: return
+        if(screen != "player" || current?.kind != "live" || entry.kind != "live") return
+        if(current?.key == entry.key && p.playerError == null && p.playbackState !in listOf(Player.STATE_IDLE, Player.STATE_ENDED)) return
+        retryTask?.let { main.removeCallbacks(it) }; retryTask = null
+        current = entry; playbackPosition = 0; playbackStarted = false; audioRestored = false; retries = 0
+        playerHeading?.text = entry.name
+        playerFavourite?.text = if(entry.key in store.favourites()) "★ Favori" else "☆ Favori"
+        p.setMediaItem(MediaItem.fromUri(Xtream(store.account() ?: return).stream(entry, store.prefs.getBoolean("hls", false))))
+        p.prepare(); p.play()
     }
     private fun play(entry: Entry, position: Long = 0L) {
         captureList()?.let { playerOrigin = it }
@@ -617,6 +646,7 @@ class MainActivity : Activity() {
         page("player", entry.name)
         root.removeAllViews(); root.setPadding(0, 0, 0, 0)
         val stage = FrameLayout(this)
+        playerStage = stage
         root.addView(stage, LinearLayout.LayoutParams(-1, -1))
         val inset = TvSafeArea.insets(this, store.prefs.getBoolean("wide_safe_area", false))
         val video = PlayerView(this).apply { id = View.generateViewId(); useController = true; controllerShowTimeoutMs = 5000; setShowSubtitleButton(true); setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING) }
@@ -625,14 +655,16 @@ class MainActivity : Activity() {
             setPadding(dp(16), dp(8), dp(16), dp(8)); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
             background = shape(Color.argb(200, 25, 19, 31))
         }
+        playerHeading = heading
         stage.addView(heading, FrameLayout.LayoutParams(-1, dp(48), Gravity.TOP).apply { leftMargin = inset.horizontal; rightMargin = inset.horizontal; topMargin = inset.vertical })
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(8), dp(8), dp(8), dp(8)); background = shape(Color.argb(210, 25, 19, 31)) }
+        playerActions = row
         val favouriteIndex = 2
-        fun favouriteLabel() = if(entry.key in store.favourites()) "★ Favori" else "☆ Favori"
+        fun favouriteLabel() = if((current ?: entry).key in store.favourites()) "★ Favori" else "☆ Favori"
         val playbackActions = mutableListOf<Pair<String, () -> Unit>>("Son" to { audioMenu() }, "Sous-titres" to { subtitleMenu() }, favouriteLabel() to {
-            changeFavourite(entry) { (row.getChildAt(favouriteIndex) as? Button)?.text = favouriteLabel() }
+            changeFavourite(current ?: entry) { (row.getChildAt(favouriteIndex) as? Button)?.text = favouriteLabel() }
         }, "Plus" to { playbackSettings() })
-        if(entry.kind == "live") playbackActions.add("Guide TV" to { openTvGuide(entry.id) })
+        if(entry.kind == "live") playbackActions.add("Guide TV" to { openMiniGuide() })
         playbackActions.add("Retour" to { leavePlayer() })
         playbackActions.forEachIndexed { index, (t, f) -> row.addView(button(t, f).apply {
             id = View.generateViewId(); textSize = 14f; setPadding(dp(6), 0, dp(6), 0); nextFocusUpId = video.id
@@ -642,6 +674,7 @@ class MainActivity : Activity() {
                 if(focus) video.showController()
             }
         }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { if(index < playbackActions.lastIndex) rightMargin = dp(6) }) }
+        playerFavourite = row.getChildAt(favouriteIndex) as? Button
         stage.addView(row, FrameLayout.LayoutParams(-1, dp(64), Gravity.BOTTOM).apply { leftMargin = inset.horizontal; rightMargin = inset.horizontal; bottomMargin = inset.vertical })
         video.findViewById<View>(androidx.media3.ui.R.id.exo_controller)?.let { controller ->
             controller.layoutParams = (controller.layoutParams as FrameLayout.LayoutParams).apply {
@@ -653,7 +686,7 @@ class MainActivity : Activity() {
         video.findViewById<View>(androidx.media3.ui.R.id.exo_settings)?.setOnClickListener { playbackSettings() }
         video.findViewById<View>(androidx.media3.ui.R.id.exo_subtitle)?.setOnClickListener { subtitleMenu() }
         video.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
-            val chrome = if(visibility == View.VISIBLE || row.hasFocus()) View.VISIBLE else View.GONE
+            val chrome = if(miniGuide?.isOpen != true && (visibility == View.VISIBLE || row.hasFocus())) View.VISIBLE else View.GONE
             heading.visibility = chrome; row.visibility = chrome
         })
         val useHls = entry.kind == "live" && store.prefs.getBoolean("hls", false)
@@ -688,7 +721,7 @@ class MainActivity : Activity() {
                 if (retries < 3 && PlaybackErrors.shouldRetry(PlaybackErrors.httpStatus(error))) {
                     retries++; toast("Reconnexion $retries/3…")
                     retryTask = Runnable { if(player === p && screen == "player") { p.prepare(); p.play() } }.also { main.postDelayed(it, 1500L * retries) }
-                } else playbackError(entry, useHls, error)
+                } else playbackError(if(entry.kind == "live") current ?: entry else entry, useHls, error)
             }
         })
         val url = Xtream(store.account()!!).stream(entry, useHls)
@@ -705,7 +738,9 @@ class MainActivity : Activity() {
             if(hls) append("\n\nPasser en MPEG-TS change le format pour toutes les chaînes en direct.")
         }
         val dialog = AlertDialog.Builder(this).setTitle(if(entry.kind == "live") "Cette chaîne ne répond pas" else "Lecture interrompue").setMessage("${entry.name} est indisponible pour le moment. Tu peux réessayer ou revenir choisir autre chose. Tes favoris sont conservés.")
-            .setNegativeButton("Autre choix") { _, _ -> leavePlayer() }
+            .setNegativeButton(if(entry.kind == "live") "Autre chaîne" else "Autre choix") { _, _ ->
+                if(entry.kind == "live") { if(miniGuide?.isOpen != true) openMiniGuide() } else leavePlayer()
+            }
             .setNeutralButton("Détails") { _, _ ->
                 val info = AlertDialog.Builder(this).setTitle("Détails de lecture").setMessage(details).setNegativeButton("Fermer", null)
                 if(hls) info.setPositiveButton("Passer en MPEG-TS") { _, _ -> store.prefs.edit().putBoolean("hls", false).apply(); play(entry) }
