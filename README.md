@@ -6,7 +6,11 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.8.0
+## Version 0.8.1
+
+**Mes favoris respire davantage.** Le titre est plus lisible, les onglets ont un état actif rose et la recherche est séparée par une vraie marge dans un panneau arrondi. La présentation est la même pour Chaînes, Films, Séries et Épisodes, y compris au retour d’une fiche. Les actions et les favoris enregistrés restent conservés.
+
+![Mes favoris — données fictives de test](docs/images/favoris-vicktv-081.png)
 
 **Changer de chaîne sans quitter sa vidéo.** Pendant le direct, **Menu** sur la télécommande ou le bouton **Guide TV** ouvre un mini-guide à droite, par-dessus la vidéo plein écran. **Favoris** est toujours le premier onglet; Québec et Toutes permettent de parcourir les autres chaînes. L’émission en cours et la suivante apparaissent lorsque le fournisseur donne l’horaire.
 

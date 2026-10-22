@@ -157,7 +157,7 @@ class MainActivity : Activity() {
     private fun addButton(parent: LinearLayout, title: String, action: () -> Unit) = button(title, action).also {
         parent.addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)).apply { bottomMargin = dp(8) })
     }
-    private fun page(name: String, subtitle: String): LinearLayout {
+    private fun page(name: String, subtitle: String, prominentTitle: Boolean = false): LinearLayout {
         if (name != "guide") guideScreen?.pause()
         requestId++; busy = false; screen = name; list = null; search = null; gallery = false; posters.cancelPending()
         rowsRequest++; rowsTask?.cancel(true); rowsLoading = null; shownEntries = emptyList()
@@ -168,7 +168,9 @@ class MainActivity : Activity() {
         header.addView(label("VickTv", 28f, accent).apply { setTypeface(null, Typeface.BOLD) }, LinearLayout.LayoutParams(0, dp(48), 1f))
         header.addView(label("POUR VICKY, AVEC AMOUR", 12f, muted))
         root.addView(header)
-        root.addView(label(subtitle, 16f, muted))
+        root.addView(label(subtitle, if(prominentTitle) 22f else 16f, if(prominentTitle) Color.WHITE else muted).apply {
+            if(prominentTitle) setTypeface(null, Typeface.BOLD)
+        })
         return root
     }
     private fun home() {
@@ -372,7 +374,7 @@ class MainActivity : Activity() {
         server.requestFocus()
     }
     private fun favourites(kind: String = "live") {
-        page("browse", "Mes favoris")
+        page("browse", "Mes favoris", prominentTitle = true)
         favouriteKind = kind
         items = store.favouriteEntries().filter { it.kind == kind }; categories = emptyList()
         buildList(when(kind) { "vod" -> "Mes films"; "series" -> "Mes séries"; "episode" -> "Mes épisodes"; else -> "Mes chaînes" }, "Favoris", false, kind in listOf("vod", "series"))
@@ -391,9 +393,17 @@ class MainActivity : Activity() {
         if(favouriteKind != null) {
             val tabs = LinearLayout(this)
             listOf("live" to "Chaînes", "vod" to "Films", "series" to "Séries", "episode" to "Épisodes").forEach { (kind, name) ->
-                tabs.addView(button(if(favouriteKind == kind) "✓ $name" else name) { favourites(kind) }, LinearLayout.LayoutParams(0, dp(42), 1f).apply { rightMargin = dp(6) })
+                val tab = button(if(favouriteKind == kind) "✓ $name" else name) { favourites(kind) }.apply {
+                    isSelected = favouriteKind == kind
+                    fun style(focused: Boolean) {
+                        background = shape(if(focused) accent else if(isSelected) TvTheme.selectedChannel else panel, if(focused) Color.WHITE else if(isSelected) accent else null)
+                        setTextColor(if(focused) bg else Color.WHITE)
+                    }
+                    style(false); setOnFocusChangeListener { _, focused -> style(focused) }
+                }
+                tabs.addView(tab, LinearLayout.LayoutParams(0, dp(46), 1f).apply { if(kind != "episode") rightMargin = dp(8) })
             }
-            root.addView(tabs)
+            root.addView(tabs, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(2); bottomMargin = dp(12) })
         } else if(!gallery) root.addView(label(title, 25f))
         if(libraryKind != null && !continuing) {
             val kind = libraryKind!!
@@ -407,7 +417,10 @@ class MainActivity : Activity() {
                 root.addView(row, LinearLayout.LayoutParams(-1, dp(48)))
             }
         }
-        val controls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val controls = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            if(favouriteKind != null) { setPadding(dp(8), dp(4), dp(8), dp(4)); background = shape(TvTheme.row) }
+        }
         val query = field(if(favouriteKind != null) "Rechercher dans mes favoris" else if(continuing) "Rechercher dans Continuer" else if(libraryKind != null) "Rechercher ${if(libraryKind == "vod") "un film" else "une série"} en français" else "Rechercher…"); search = query
         controls.addView(query, LinearLayout.LayoutParams(0, dp(46), 1f))
         controls.addView(button("Chercher") { renderRows(section) }, LinearLayout.LayoutParams(dp(110), dp(46)).apply { leftMargin = dp(8) })
@@ -438,7 +451,7 @@ class MainActivity : Activity() {
             addView(label("Un instant…", 16f, muted))
         }
         content.addView(rowsLoading, FrameLayout.LayoutParams(-1, -1))
-        root.addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(content, LinearLayout.LayoutParams(-1, 0, 1f).apply { if(favouriteKind != null) topMargin = dp(4) })
         renderRows(section, focus = focusResults)
     }
     private fun renderRows(section: String, selection: Int = lastListSelection, focus: Boolean = true) {
@@ -508,7 +521,7 @@ class MainActivity : Activity() {
     private fun captureList(): ListState? = if (screen in listOf("browse", "episodes", "continuing") && list != null)
         ListState(listTitle, listSection, listFilters, screen, categories, items, search?.text.toString(), lastListSelection, gallery, libraryKind, favouriteKind, continuing) else null
     private fun restoreList(state: ListState) {
-        page(state.screen, when { state.favouriteKind != null -> "Mes favoris"; state.continuing -> state.title; state.gallery -> "${state.title} · En français"; else -> state.title }); categories = state.categories; items = state.entries
+        page(state.screen, when { state.favouriteKind != null -> "Mes favoris"; state.continuing -> state.title; state.gallery -> "${state.title} · En français"; else -> state.title }, prominentTitle = state.favouriteKind != null); categories = state.categories; items = state.entries
         libraryKind = state.libraryKind; favouriteKind = state.favouriteKind; continuing = state.continuing
         if(continuing) items = continueEntries(libraryKind!!, state.section == "Adultes")
         buildList(state.title, state.section, state.filters, state.gallery); search?.setText(state.query); renderRows(state.section, state.selected)
