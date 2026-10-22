@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version distribuée : **0.5.1**, `versionCode = 10`, transitions du guide en arrière-plan (section 24). Version précédente : **0.5.0**, `versionCode = 9`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée : **0.5.2**, `versionCode = 11`, Retour vers les onglets du guide (section 25). Version précédente : **0.5.1**, `versionCode = 10`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -549,3 +549,11 @@ Demande : depuis une chaîne éloignée dans la liste, rejoindre les onglets san
 Ce déplacement de focus ne relance aucun filtrage et ne modifie ni la sélection, ni le défilement, ni la fenêtre horaire. Un marqueur protège le focus du haut contre un résultat de filtrage encore en cours; une nouvelle action explicite ou un retour dans la grille reprend la navigation normale. Les dialogues consomment leur propre Retour comme avant, et le lecteur continue de revenir au guide. Aide intégrée, README et notes de version décrivent ces deux étapes.
 
 Version **0.5.2 / code 11**, même paquet et signature. Aucun changement de stockage ou de contenu des favoris, comptes et préférences. Les **33 tests existants** passent; lint sans erreur (neuf avertissements), compilation release signée et vérification du certificat initial réussies. La modification de focus est vérifiée sur l’interface réelle de l’APK plutôt que par un test unitaire qui recopierait la disposition.
+
+Sur émulateur API 35 avec fournisseur fictif, installation sur place par-dessus 0.5.1 : le favori Télé-Québec reste présent avant et après, et le compte est utilisable. Depuis la **dernière chaîne (16/16)** et une fenêtre avancée dans l’horaire, Retour rejoint le menu du haut; le libellé d’accessibilité de la sélection reste strictement identique. Bas redonne le focus à la même chaîne et à la même émission. Le second Retour depuis le menu ouvre l’accueil. Les essais couvrent aussi Retour dans un dialogue, le retour lecteur → guide → menu et le dernier bouton du haut utilisé. Les captures de laboratoire restent sous qa. Aucun essai sur Fire Stick réel; émulateur et serveur arrêtés, copies de signature extraites supprimées.
+
+### Publication 0.5.2
+
+La [PR nº 10](https://github.com/kcote84/VickTV/pull/10) est fusionnée au commit `5ee3dcc24d8cbeec6a57ae795081f5932c793a47`, après réussite du contrôle Android [39697866551](https://github.com/kcote84/VickTV/actions/runs/39697866551). Le workflow de publication [39698082430](https://github.com/kcote84/VickTV/actions/runs/39698082430) réussit et crée [v0.5.2](https://github.com/kcote84/VickTV/releases/tag/v0.5.2).
+
+APK public : **6 978 127 octets**, SHA-256 `ab21f77965507e5ed8cbf4af28db10617533d254391842798894ef5053d7a197`. Manifeste stable (code 11), SHA256SUMS et liens APK latest/versionné téléchargés sans authentification; les deux APK sont identiques au fichier signé testé. Le fichier public est à nouveau vérifié par apksigner : certificat initial conservé, paquet ca.vicktv et version attendus, sans mode débogable. Les 24 morceaux se reconstruisent à l’identique.
