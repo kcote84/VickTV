@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version distribuée : **0.6.0**, `versionCode = 12`, première étape de simplification et favoris protégés (section 27). Version précédente : **0.5.2**, `versionCode = 11`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée : **0.7.0**, `versionCode = 13`, fiches films/séries, saisons et reprise persistante (section 28). Version précédente : **0.6.0**, `versionCode = 12`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -663,7 +663,7 @@ Mise à jour depuis la version précédente : Réglages → Vérifier les mises 
 
 ## 28. Films et séries — chantier 0.7.0 / code 13
 
-Étape autorisée après 0.6.0 : reprise persistante, fiches et choix des saisons. Préparation en cours; la version distribuée reste celle de l’en-tête jusqu’à confirmation de publication.
+Étape autorisée après 0.6.0 : reprise persistante, fiches et choix des saisons. Version publiée; confirmation et vérification des téléchargements ci-dessous.
 
 ### Architecture et choix d’usage
 
@@ -676,9 +676,9 @@ Mise à jour depuis la version précédente : Réglages → Vérifier les mises 
 
 Périmètre restant après cette étape : recherche globale unique, ordre personnalisé des favoris, cache disque de catalogue, mini-guide sur la vidéo et synchronisation entre appareils. L’historique local n’est pas un service de sauvegarde et une désinstallation efface ces données comme les favoris.
 
-### Validation en cours
+### Première validation, avant les corrections finales
 
-Première compilation : 54 tests unitaires réussis, lintDebug sans erreur (9 avertissements), assembleRelease signé avec le certificat initial. Installation 0.6.0 → première version 0.7.0 sur émulateur API 35 : compte et favori Télé-Québec fictif conservés. Les essais de reprise réelle après fermeture, de saisons et d’épisode suivant sont en cours; aucun Fire Stick ni flux Edge n’est utilisé pour ces essais.
+Première compilation : 54 tests unitaires réussis, lintDebug sans erreur (9 avertissements), assembleRelease signé avec le certificat initial. Installation 0.6.0 → première version 0.7.0 sur émulateur API 35 : compte et favori Télé-Québec fictif conservés. Les essais de reprise réelle après fermeture, de saisons et d’épisode suivant ont ensuite été complétés avec les résultats finaux ci-dessous; aucun Fire Stick ni flux Edge n’est utilisé pour ces essais.
 
 ### Résultat final des validations locales
 
@@ -691,4 +691,12 @@ Première compilation : 54 tests unitaires réussis, lintDebug sans erreur (9 av
 
 APK préparé : **7 016 323 octets**, SHA-256 `1e6c91012c33c7510aabd907c27831e4438ccba7da7b25f1575ca0c11a5166e8`, certificat initial `6a09826ceee768d04367e205731a23a1b03a791c25b150c4cf232db2274d2e16` validé par apksigner. aapt confirme ca.vicktv, 0.7.0/code 13, libellé VickTv, sans mode débogable. Les 24 morceaux reconstruisent exactement cet APK; manifeste et somme SHA-256 sont cohérents. Copies temporaires de signature retirées, archive privée originale conservée hors Git.
 
-Plan de récupération : conserver paquet, signature et données; corriger toute régression avec un versionCode supérieur à 13. Une désinstallation effacerait les favoris et l’historique local. La publication et les téléchargements publics seront consignés après confirmation.
+Plan de récupération : conserver paquet, signature et données; corriger toute régression avec un versionCode supérieur à 13. Une désinstallation effacerait les favoris et l’historique local.
+
+### Publication confirmée
+
+Publication le 21 octobre 2026 : [PR 12](https://github.com/kcote84/VickTV/pull/12), commit de fusion `f99a6aeeb589bf35ecc73059bd4d2e1f7f881f90`. La [CI de la PR](https://github.com/kcote84/VickTV/actions/runs/39712767688) a réussi avant fusion; le [workflow de publication](https://github.com/kcote84/VickTV/actions/runs/39713147057) a réussi. [Release v0.7.0](https://github.com/kcote84/VickTV/releases/tag/v0.7.0) disponible.
+
+Vérification externe : manifeste latest identique au manifeste local (0.7.0 / code 13), liens versionné et stable donnant un APK identique octet pour octet aux **7 016 323 octets** testés. SHA256SUMS et SHA-256 public correspondent à l’empreinte ci-dessus; apksigner sur le téléchargement public confirme le certificat initial. Aucun jeton GitHub nécessaire. Le journal AndroidRuntime de la session finale ne contient pas d’exception fatale; fournisseur fictif et émulateur arrêtés après validation.
+
+Installation depuis 0.6.0 : **Réglages → Mise à jour**, puis installer par-dessus sans désinstaller pour garder compte, favoris, préférences et petits mots. La reprise est mémorisée à partir des lectures effectuées avec 0.7.0; les positions d’anciennes lectures sous 0.6.0 ne peuvent pas être reconstituées. [Téléchargement stable de l’APK](https://github.com/kcote84/VickTV/releases/latest/download/VickTV.apk).
