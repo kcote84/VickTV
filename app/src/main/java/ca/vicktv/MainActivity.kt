@@ -410,12 +410,7 @@ class MainActivity : Activity() {
         if(filters && !gallery) controls.addView(button("Catégories") { chooseCategory() }, LinearLayout.LayoutParams(dp(130), dp(46)).apply { leftMargin = dp(8) })
         if(gallery) controls.addView(button("Options") { selectedEntry()?.let { entryMenu(it) } ?: toast("Choisis d’abord un titre.") }, LinearLayout.LayoutParams(dp(110), dp(46)).apply { leftMargin = dp(8) })
         root.addView(controls)
-        if(!gallery) {
-            val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            actions.addView(button("Options / Favoris") { selectedEntry()?.let { entryMenu(it) } ?: toast("Choisis d’abord un titre dans la liste.") }, LinearLayout.LayoutParams(-1, dp(46)))
-            root.addView(actions)
-            root.addView(label("OK : ouvrir  ·  Menu : favoris  ·  Appui long OK : favori", 13f, muted))
-        }
+        if(!gallery) root.addView(label("OK : ouvrir  ·  Menu : favoris  ·  Appui long OK : favori", 13f, muted))
         list = if(gallery) GridView(this).apply {
             numColumns = if(resources.configuration.screenWidthDp < 800) 5 else 6
             horizontalSpacing = dp(12); verticalSpacing = dp(14); stretchMode = GridView.STRETCH_COLUMN_WIDTH
