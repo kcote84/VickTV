@@ -541,3 +541,11 @@ Validation avec l’APK signé sur émulateur API 35 : favori Télé-Québec et 
 La [PR nº 9](https://github.com/kcote84/VickTV/pull/9) est fusionnée au commit `3be13a205b17c0d104d4341ca4701a27637b3f05`, après réussite du contrôle Android [39695401943](https://github.com/kcote84/VickTV/actions/runs/39695401943). Le workflow de publication [39695696080](https://github.com/kcote84/VickTV/actions/runs/39695696080) réussit et crée [v0.5.1](https://github.com/kcote84/VickTV/releases/tag/v0.5.1).
 
 APK public : **6 977 535 octets**, SHA-256 `aeebcf7258ebfafad4a535a3591ee30cf68516327cf14ff64d8c7826abde8252`. Le manifeste stable (code 10), SHA256SUMS et les deux liens APK latest/versionné sont téléchargés sans authentification. Les APK sont identiques au fichier signé testé; `apksigner` confirme le certificat initial sur le fichier public. Le paquet reste ca.vicktv, sans mode débogable; les 24 morceaux de distribution se reconstruisent à l’identique.
+
+## 25. Retour vers les onglets du guide — 0.5.2
+
+Demande : depuis une chaîne éloignée dans la liste, rejoindre les onglets sans remonter toutes les chaînes et sans quitter le guide. Dans la grille, **Retour** redonne maintenant le focus au dernier bouton utilisé en haut (ou au filtre courant par défaut). **Bas** retrouve la chaîne sélectionnée; **Retour depuis les onglets** ramène à l’accueil. `MainActivity` délègue ce premier Retour à `TvGuideScreen.handleBack()`.
+
+Ce déplacement de focus ne relance aucun filtrage et ne modifie ni la sélection, ni le défilement, ni la fenêtre horaire. Un marqueur protège le focus du haut contre un résultat de filtrage encore en cours; une nouvelle action explicite ou un retour dans la grille reprend la navigation normale. Les dialogues consomment leur propre Retour comme avant, et le lecteur continue de revenir au guide. Aide intégrée, README et notes de version décrivent ces deux étapes.
+
+Version **0.5.2 / code 11**, même paquet et signature. Aucun changement de stockage ou de contenu des favoris, comptes et préférences. Les **33 tests existants** passent; lint sans erreur (neuf avertissements), compilation release signée et vérification du certificat initial réussies. La modification de focus est vérifiée sur l’interface réelle de l’APK plutôt que par un test unitaire qui recopierait la disposition.

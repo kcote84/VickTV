@@ -6,9 +6,11 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.5.1
+## Version 0.5.2
 
-La version **0.5.1 (code 10)** masque les anciennes chaînes et affiche une roue rose pendant les changements d’onglet du guide. Le filtrage travaille en arrière-plan; les clics rapides gardent le dernier choix. La roue apparaît aussi pendant le chargement initial du catalogue. Les horaires se complètent ensuite dans la grille. Les favoris et le compte sont conservés lors d’une mise à jour sur place.
+La version **0.5.2 (code 11)** permet de rejoindre les onglets du haut avec **Retour**, depuis n’importe quelle chaîne du guide. La chaîne, le défilement et l’heure restent à la même place; **↓** revient dans la grille. Depuis les onglets, **Retour** ramène à l’accueil.
+
+La roue rose et le filtrage en arrière-plan de 0.5.1 sont conservés. Les favoris et le compte restent présents lors d’une mise à jour sur place.
 
 [Aperçu de la transition de chargement](docs/images/guide-chargement.png).
 
@@ -32,7 +34,7 @@ Pendant la lecture, les commandes se superposent à l’image plein écran sans 
 
 1. À l’accueil, choisir **Guide TV**. **↑ ↓** change de chaîne; **← →** parcourt les émissions et les heures suivantes.
 2. **OK** regarde la chaîne si l’émission est en cours. Sur une émission à venir, OK ouvre les détails et propose de regarder la chaîne **en direct**.
-3. **Retour** retrouve sa place dans le guide après la lecture; un autre Retour ramène à l’accueil.
+3. Après la lecture, **Retour** retrouve sa place dans le guide. Dans la grille, **Retour** rejoint les onglets du haut; **↓** retrouve la chaîne sélectionnée. Un autre **Retour**, depuis les onglets, ramène à l’accueil.
 
 Pour garder une chaîne : **Menu → Ajouter aux favoris**. **★ Favoris** ne montre ensuite que ces chaînes. Menu donne aussi accès à **Favoris / Québec / Toutes**, à la recherche et à **Revenir à maintenant**, depuis n’importe quelle ligne. **? Aide** explique les commandes dans l’application.
 

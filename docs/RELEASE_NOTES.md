@@ -1,8 +1,8 @@
-# VickTv 0.5.1
+# VickTv 0.5.2
 
-- Guide TV : les anciennes chaînes se masquent dès le choix d’un onglet et une roue rose apparaît pendant le chargement.
-- Filtrage en arrière-plan pour garder l’interface et la roue réactives sur les gros catalogues.
-- Les changements rapides entre Favoris, Québec et Toutes conservent le dernier choix; les résultats devenus obsolètes sont ignorés.
-- La roue couvre aussi le chargement initial du catalogue. Les horaires continuent de se compléter dans la grille une fois les chaînes affichées.
-- Favoris, compte, réglages audio et présentation 0.5.0 conservés.
+- Dans les chaînes du guide, Retour rejoint directement les onglets du haut, sans quitter la page.
+- La chaîne sélectionnée, le défilement et l’heure sont conservés. Bas retrouve la même chaîne; Retour depuis les onglets ramène à l’accueil.
+- Un chargement en cours respecte le retour au menu et ne reprend pas le focus à sa fin.
+- Retour dans un dialogue le ferme comme avant; Retour depuis le lecteur retrouve le guide.
+- Favoris, compte, roue de chargement et réglages conservés.
 - Même paquet et même clé de signature : mise à jour sur place, sans désinstallation.
