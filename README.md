@@ -6,27 +6,27 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.6.0
+## Version 0.7.0
 
-**Quatre grands choix : Télé, Films, Séries et Mes favoris.** Télé ouvre le guide, avec ★ Favoris en premier. Rechercher permet de choisir chaînes, films ou séries; Sports et Adultes restent accessibles sous Plus. Les petits mots s’affichent dans une carte à l’accueil, sans fenêtre à fermer.
+**Films et séries : de la pochette à la soirée, sans se perdre.** Une sélection ouvre maintenant une fiche : grande affiche, titre, résumé et renseignements fournis (année, durée, genre, distribution). Les champs absents ne sont pas inventés; un film peut toujours démarrer si sa fiche ne répond pas.
 
-Le guide garde le bas libre et propose **Maintenant** en haut. L’étoile **☆ Ajouter / ★ Favori** indique l’état de la chaîne sélectionnée. Chaque retrait propose **Annuler le retrait**, dans le guide, les listes et le lecteur. Retour dans les chaînes rejoint le menu du haut; Bas retrouve sa place; Retour depuis le menu ramène à l’accueil.
+**Continuer** retrouve la position sauvegardée, même après fermeture complète ou mise à jour. **Recommencer** repart du début. Dans Films/Séries, le raccourci Continuer rejoint le titre récent; Tout reprendre présente les autres pochettes en cours. La reprise est enregistrée à partir de quelques secondes de lecture et dépend du déplacement temporel permis par le flux.
 
-Les réglages courants présentent Son, Image coupée sur les bords, Mots d’amour et Mise à jour. Le cadre rose permet de choisir la marge normale (5 %) ou agrandie (8 %). Compte et format MPEG-TS/HLS sont dans Options avancées.
+Les séries ont un bouton **Saison**, une liste d’épisodes numérotés et des repères **Vu / En cours**. La fiche propose le bon épisode à reprendre. À la fin, **Épisode suivant** peut passer à la saison suivante; rien ne démarre automatiquement. Le menu d’un épisode permet de corriger son état Vu et de lire son résumé.
 
-Le menu Son affiche les langues en clair; les codecs restent dans Détails. La narration n’est signalée que lorsque les métadonnées l’identifient. Une seule piste reçue est expliquée clairement : l’application ne peut pas retirer une narration déjà mélangée au son. L’évitement de l’audiodescription reste activé par défaut.
+**Mes favoris** propose Chaînes, Films, Séries et Épisodes. Les anciens favoris sont conservés avec leurs identifiants et restent accessibles; les anciens épisodes sans lien de série se lisent directement. Les favoris et les positions sont propres au compte de chaque téléviseur.
 
-**Les favoris et le compte sont conservés lors d’une mise à jour sur place.** Changer de compte demande confirmation et sauvegarde sa liste séparément; reconnecter l’ancien compte restaure ses favoris. Ne pas désinstaller pour mettre à jour : une désinstallation efface les données locales.
+Le catalogue Films/Séries reste **en français, de toutes origines**, sans filtre de langue à choisir. Recherche contextualisée, bouton Effacer et pochettes de remplacement sont conservés. Les renseignements et le classement dépendent du fournisseur.
 
-Films et Séries gardent leurs pochettes, en français de toutes origines, sans filtre linguistique à choisir. Le filtrage se fait en arrière-plan, avec un chargement visible et annulation des recherches dépassées. Le classement repose sur les noms du fournisseur; les titres VOSTFR sont exclus. Une affiche absente garde un pictogramme et son titre.
+L’accueil garde Télé, Films, Séries et Mes favoris; Sports et Adultes sont sous Plus. Le guide garde Favoris en premier, Maintenant et son retour au menu avec Retour. Les marges TV restent de 5 %, ou 8 % dans Réglages → Image coupée sur les bords. Les petits mots restent dans une carte non bloquante.
 
-Québec dans le guide sélectionne les chaînes locales francophones reconnues; Toutes conserve le catalogue complet. Adultes utilise les métadonnées du fournisseur et ne constitue pas un contrôle parental. Les commandes du lecteur se superposent à l’image plein écran.
+**Installer par-dessus la version actuelle, sans désinstaller.** Le paquet et la signature sont identiques. Les comptes, favoris, préférences et 50 petits mots en rotation restent conservés. L’historique local garde les 200 derniers films/épisodes par compte; il ne se synchronise pas entre les TV. Les versions antérieures à 0.7.0 ne sauvegardaient pas les positions.
+
+![Fiche film — données fictives de test](docs/images/fiche-film-vicktv.png)
+
+![Saisons et reprise d’une série — données fictives de test](docs/images/fiche-serie-vicktv.png)
 
 ![Accueil simplifié](docs/images/home-vicktv-simple.png)
-
-![Guide TV — données fictives de test](docs/images/guide-tv-simple.png)
-
-![Films — pochettes fictives de test](docs/images/films-vicktv.png)
 
 ## Le guide, en trois gestes
 
@@ -57,8 +57,18 @@ Sans compte, le guide montre un **horaire de démonstration fictif**, clairement
 - Les regroupements Québec/Sports utilisent les noms des catégories et chaînes du fournisseur; ils peuvent être imparfaits. Le bouton **Catégories** dans le direct donne accès aux groupes originaux.
 - Appui long sur OK dans une liste : ajouter/retirer un favori.
 - Pendant la lecture : **Son** ou touche Menu de la télécommande pour choisir une piste.
-- **Détails** décrit le flux reçu, sans prétendre mesurer la sortie HDMI.
+- **Sous-titres** se choisit dans le lecteur; **Plus** regroupe vitesse, détails du flux et Réessayer. Les détails décrivent le flux reçu, sans mesurer la sortie HDMI.
 - Réglages → Son propose la préférence stéréo/5.1; Options avancées contient le format MPEG-TS/HLS.
+
+Le choix du son utilise les pistes reçues. L’audiodescription est évitée par défaut lorsqu’une autre piste est disponible; une narration déjà mélangée à l’unique piste ne peut pas être retirée. La sortie stéréo/5.1 dépend aussi de la télé et du Fire Stick.
+
+## Films et séries, en trois gestes
+
+1. Choisir une pochette, puis **Regarder** ou **Continuer** sur sa fiche.
+2. Pour une série, choisir **Saison**, puis l’épisode voulu. Retour après la lecture retrouve cette saison.
+3. Utiliser **Recommencer** pour repartir du début; dans Plus, l’état Vu peut être corrigé et une entrée retirée de Continuer sans retirer son favori.
+
+La position est sauvegardée toutes les 5 secondes pendant la lecture, à la pause et à la sortie. Un arrêt brutal peut perdre les dernières secondes. La fin réelle ou les derniers 5 % (au maximum 90 secondes) donnent le repère Vu. Cette règle évite de garder indéfiniment un générique dans Continuer.
 
 ## Les petits mots
 

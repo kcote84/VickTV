@@ -49,7 +49,7 @@ class Store(context: Context) {
     fun clearFavourites() { prefs.edit().remove("favourites").remove("favourite_details").apply() }
     fun favouriteEntries(): List<Entry> = runCatching {
         val all = JSONObject(prefs.getString("favourite_details", "{}")!!)
-        favourites().mapNotNull { id -> all.optJSONObject(id)?.let { Entry(it.getString("id"), it.getString("name"), it.getString("category"), it.getString("kind"), it.getString("extension"), it.optInt("number"), it.optBoolean("adult"), it.optString("poster")) } }.sortedBy { it.name }
+        favourites().mapNotNull { id -> all.optJSONObject(id)?.let { EntryJson.read(it) } }.sortedBy { it.name }
     }.getOrDefault(emptyList())
     fun toggle(entry: Entry): Boolean = setFavourite(entry, entry.key !in favourites())
     fun setFavourite(entry: Entry, wanted: Boolean): Boolean {
@@ -57,10 +57,22 @@ class Store(context: Context) {
         val details = JSONObject(prefs.getString("favourite_details", "{}")!!)
         val added = if (!wanted) { values.remove(entry.key); details.remove(entry.key); false } else {
             values.add(entry.key)
-            details.put(entry.key, JSONObject().put("id", entry.id).put("name", entry.name).put("category", entry.category).put("kind", entry.kind).put("extension", entry.extension).put("number", entry.number).put("adult", entry.adult).put("poster", entry.poster))
+            details.put(entry.key, EntryJson.write(entry))
             true
         }
         prefs.edit().putStringSet("favourites", values).putString("favourite_details", details.toString()).apply()
         return added
+    }
+    private fun progressKey(): String? = account()?.let { "watch_history:" + FavouriteProfiles.identity(it.server, it.username) }
+    fun history(): List<WatchProgress> = progressKey()?.let { WatchHistory.decode(prefs.getString(it, "[]")!!) }.orEmpty()
+    fun remember(progress: WatchProgress) {
+        val key = progressKey() ?: return
+        prefs.edit().putString(key, WatchHistory.encode(WatchHistory.update(history(), progress))).apply()
+    }
+    fun setContinueHidden(entry: Entry, hidden: Boolean) {
+        val key = progressKey() ?: return
+        prefs.edit().putString(key, WatchHistory.encode(history().map {
+            if(it.entry.key == entry.key || entry.kind == "series" && it.entry.seriesId == entry.id) it.copy(hidden = hidden) else it
+        })).apply()
     }
 }

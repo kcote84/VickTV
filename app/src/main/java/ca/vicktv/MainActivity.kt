@@ -42,6 +42,10 @@ class MainActivity : Activity() {
     private var player: ExoPlayer? = null
     private var playerView: PlayerView? = null
     private var playbackPosition = 0L
+    private var playbackStarted = false
+    private val progressTick = object : Runnable {
+        override fun run() { if(player?.isPlaying == true) saveProgress(); if(player != null) main.postDelayed(this, 5000) }
+    }
     private var stopped = false
     private var greetingPending = true
     private var loveNote: String? = null
@@ -51,6 +55,7 @@ class MainActivity : Activity() {
     private var retryTask: Runnable? = null
     private var busy = false
     private var pendingInstall: File? = null
+    private var playbackEndDialog: AlertDialog? = null
     private var browseTitle = ""
     private var browseKind = "live"
     private var browseSection = ""
@@ -66,9 +71,19 @@ class MainActivity : Activity() {
     private var shownEntries = emptyList<Entry>()
     private var lastListSelection = 0
     private data class ListState(val title: String, val section: String, val filters: Boolean, val screen: String,
-        val categories: List<Category>, val entries: List<Entry>, val query: String, val selected: Int, val gallery: Boolean)
+        val categories: List<Category>, val entries: List<Entry>, val query: String, val selected: Int, val gallery: Boolean,
+        val libraryKind: String?, val favouriteKind: String?, val continuing: Boolean)
     private var playerOrigin: ListState? = null
     private var seriesOrigin: ListState? = null
+    private var libraryKind: String? = null
+    private var favouriteKind: String? = null
+    private var continuing = false
+    private var continueOrigin: ListState? = null
+    private var detailOrigin: ListState? = null
+    private var mediaDetails: MediaDetails? = null
+    private var mediaScreen: MediaScreen? = null
+    private var mediaSeason: String? = null
+    private var mediaEpisode: String? = null
     private var guideScreen: TvGuideScreen? = null
     private var returnToGuide = false
     private val bg = TvTheme.background
@@ -100,6 +115,7 @@ class MainActivity : Activity() {
         releasePlayer()
         super.onStop()
     }
+    override fun onPause() { saveProgress(); super.onPause() }
     override fun onDestroy() { requestId++; guideScreen?.close(); releasePlayer(); posters.close(); work.shutdownNow(); rowsWorker.shutdownNow(); main.removeCallbacksAndMessages(null); super.onDestroy() }
     @Deprecated("TV back navigation")
     override fun onBackPressed() {
@@ -108,6 +124,8 @@ class MainActivity : Activity() {
             "player" -> leavePlayer()
             "guide" -> if(guideScreen?.handleBack() != true) { releasePlayer(); current = null; home() }
             "episodes" -> seriesOrigin?.let { restoreList(it) } ?: home()
+            "details" -> leaveDetails()
+            "continuing" -> continueOrigin?.let { restoreList(it) } ?: home()
             "sound", "safe", "advanced" -> settings()
             else -> { releasePlayer(); current = null; home() }
         }
@@ -138,6 +156,7 @@ class MainActivity : Activity() {
         if (name != "guide") guideScreen?.pause()
         requestId++; busy = false; screen = name; list = null; search = null; gallery = false; posters.cancelPending()
         rowsRequest++; rowsTask?.cancel(true); rowsLoading = null; shownEntries = emptyList()
+        libraryKind = null; favouriteKind = null; continuing = false
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; TvSafeArea.apply(this, this@MainActivity, store.prefs.getBoolean("wide_safe_area", false)); setBackgroundColor(bg) }
         setContentView(root)
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
@@ -149,6 +168,7 @@ class MainActivity : Activity() {
     }
     private fun home() {
         playerOrigin = null; seriesOrigin = null; returnToGuide = false
+        detailOrigin = null; mediaDetails = null; mediaScreen = null; continueOrigin = null
         page("home", "Ta soirée, tout simplement.")
         if (store.account() == null) root.addView(label("Mode démo · Connecte ton compte dans Réglages.", 14f, muted))
         fun addTile(row: LinearLayout, tile: View, weight: Float = 1f) {
@@ -346,14 +366,16 @@ class MainActivity : Activity() {
         form.addView(label("Tes identifiants sont chiffrés sur cet appareil. Ils ne sont jamais envoyés à GitHub.", 12f, muted))
         server.requestFocus()
     }
-    private fun favourites() {
-        page("browse", "Tes favoris, réunis au même endroit.")
-        items = store.favouriteEntries(); categories = emptyList()
-        buildList("Favoris", "Favoris", false)
+    private fun favourites(kind: String = "live") {
+        page("browse", "Mes favoris")
+        favouriteKind = kind
+        items = store.favouriteEntries().filter { it.kind == kind }; categories = emptyList()
+        buildList(when(kind) { "vod" -> "Mes films"; "series" -> "Mes séries"; "episode" -> "Mes épisodes"; else -> "Mes chaînes" }, "Favoris", false, kind in listOf("vod", "series"))
     }
     private fun browse(title: String, kind: String, section: String, category: String? = null, searching: Boolean = false) {
         browseTitle = title; browseKind = kind; browseSection = section; browseCategory = category
         page("browse", if(kind in listOf("vod", "series")) "$title · En français" else "$title · Choisis une catégorie ou cherche un titre.")
+        libraryKind = kind.takeIf { it in listOf("vod", "series") }
         async("Chargement du catalogue…", {
             val api = Xtream(store.account() ?: error("Connecte ton compte."))
             api.categories(kind) to api.entries(kind, category)
@@ -361,11 +383,30 @@ class MainActivity : Activity() {
     }
     private fun buildList(title: String, section: String, filters: Boolean, covers: Boolean = false, focusResults: Boolean = true) {
         listTitle = title; listSection = section; listFilters = filters; gallery = covers
-        if(!gallery) root.addView(label(title, 25f))
+        if(favouriteKind != null) {
+            val tabs = LinearLayout(this)
+            listOf("live" to "Chaînes", "vod" to "Films", "series" to "Séries", "episode" to "Épisodes").forEach { (kind, name) ->
+                tabs.addView(button(if(favouriteKind == kind) "✓ $name" else name) { favourites(kind) }, LinearLayout.LayoutParams(0, dp(42), 1f).apply { rightMargin = dp(6) })
+            }
+            root.addView(tabs)
+        } else if(!gallery) root.addView(label(title, 25f))
+        if(libraryKind != null && !continuing) {
+            val kind = libraryKind!!
+            val recent = continuingRecords(kind, section == "Adultes", categories)
+            if(recent.isNotEmpty()) {
+                val row = LinearLayout(this)
+                val first = recent.first()
+                val entry = if(kind == "series") first.seriesEntry() else first.entry
+                row.addView(button("Continuer · ${entry.name}") { openMedia(entry) }.apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END }, LinearLayout.LayoutParams(0, dp(42), 1f))
+                row.addView(button("Tout reprendre (${recent.size})") { continueWatching(kind, section == "Adultes") }, LinearLayout.LayoutParams(dp(200), dp(42)).apply { leftMargin = dp(8) })
+                root.addView(row, LinearLayout.LayoutParams(-1, dp(48)))
+            }
+        }
         val controls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        val query = field("Rechercher…"); search = query
+        val query = field(if(favouriteKind != null) "Rechercher dans mes favoris" else if(continuing) "Rechercher dans Continuer" else if(libraryKind != null) "Rechercher ${if(libraryKind == "vod") "un film" else "une série"} en français" else "Rechercher…"); search = query
         controls.addView(query, LinearLayout.LayoutParams(0, dp(46), 1f))
         controls.addView(button("Chercher") { renderRows(section) }, LinearLayout.LayoutParams(dp(110), dp(46)).apply { leftMargin = dp(8) })
+        if(gallery || favouriteKind != null) controls.addView(button("Effacer") { query.setText(""); renderRows(section, 0) }, LinearLayout.LayoutParams(dp(90), dp(46)).apply { leftMargin = dp(8) })
         if(filters && !gallery) controls.addView(button("Catégories") { chooseCategory() }, LinearLayout.LayoutParams(dp(130), dp(46)).apply { leftMargin = dp(8) })
         if(gallery) controls.addView(button("Options") { selectedEntry()?.let { entryMenu(it) } ?: toast("Choisis d’abord un titre.") }, LinearLayout.LayoutParams(dp(110), dp(46)).apply { leftMargin = dp(8) })
         root.addView(controls)
@@ -404,7 +445,7 @@ class MainActivity : Activity() {
         val query = search?.text.toString()
         val names = categories.associate { it.id to it.name }
         val favourites = store.favourites()
-        val source = items; val covers = gallery; val target = list ?: return
+        val source = items; val covers = gallery; val frenchOnly = covers && favouriteKind == null && !continuing; val target = list ?: return
         val token = ++rowsRequest; val pageToken = requestId
         val hadFocus = target.hasFocus()
         rowsTask?.cancel(true); rowsLoading?.visibility = View.VISIBLE
@@ -413,7 +454,7 @@ class MainActivity : Activity() {
         val focusAtStart = currentFocus
         rowsTask = rowsWorker.submit {
             val result = runCatching {
-                val selected = CatalogueSelection.select(source, names, favourites, section, covers, query)
+                val selected = CatalogueSelection.select(source, names, favourites, section, frenchOnly, query)
                 val labels = if(covers) emptyList() else selected.map { "${if(it.key in favourites) "★  " else ""}${it.name}\n${names[it.category] ?: when(it.kind) { "live" -> "Chaîne en direct"; "vod" -> "Film"; "series" -> "Série"; else -> "Épisode" }}" }
                 selected to labels
             }
@@ -423,13 +464,20 @@ class MainActivity : Activity() {
                 rowsTask = null; rowsLoading?.visibility = View.GONE
                 val (shown, labels) = result.getOrElse { message("Catalogue", "La liste n’a pas pu être affichée. Réessaie ta recherche."); emptyList<Entry>() to emptyList<String>() }
                 shownEntries = shown
-                (list?.emptyView as? TextView)?.text = if(section == "Favoris") "Tes favoris apparaîtront ici. Utilise Options / Favoris sur un titre." else if(gallery) "Aucun titre en français dans cette sélection. Essaie une autre recherche." else "Aucun résultat. Essaie une autre recherche ou catégorie."
+                (list?.emptyView as? TextView)?.text = when {
+                    section == "Favoris" && query.isNotBlank() -> "Aucun favori ne correspond. Efface la recherche pour tout revoir."
+                    section == "Favoris" -> "Tes favoris apparaîtront ici. Ajoute une étoile depuis une fiche ou le guide."
+                    continuing && query.isNotBlank() -> "Aucun résultat dans Continuer. Efface la recherche pour tout revoir."
+                    continuing -> "Rien à reprendre pour le moment. Choisis un titre et commence à regarder."
+                    gallery -> "Aucun titre en français dans cette sélection. Essaie une autre recherche."
+                    else -> "Aucun résultat. Essaie une autre recherche ou catégorie."
+                }
                 if(gallery) {
                     posters.cancelPending()
                     val inset = TvSafeArea.insets(this, store.prefs.getBoolean("wide_safe_area", false))
                     val columns = (list as GridView).numColumns
                     val width = (resources.displayMetrics.widthPixels - 2 * inset.horizontal - (columns - 1) * dp(12)) / columns
-                    list?.adapter = PosterAdapter(this, shown, favourites, posters, ((width - dp(8)) * 1.5f).toInt())
+                    list?.adapter = PosterAdapter(this, shown, favourites, posters, ((width - dp(8)) * 1.5f).toInt(), progressLabels())
                 } else {
                     list?.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, labels) {
                         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View = (super.getView(position, convertView, parent) as TextView).apply {
@@ -444,7 +492,7 @@ class MainActivity : Activity() {
                 }
                 if(shown.isEmpty()) { list?.setOnItemClickListener(null); list?.setOnItemLongClickListener(null) }
                 else {
-                    list?.setOnItemClickListener { _, _, index, _ -> lastListSelection = index; val entry = shown[index]; if(entry.kind == "series") episodes(entry) else play(entry) }
+                    list?.setOnItemClickListener { _, _, index, _ -> lastListSelection = index; openEntry(shown[index]) }
                     list?.setOnItemLongClickListener { _, _, index, _ -> changeFavourite(shown[index]) { renderRows(section, index) }; true }
                 }
                 target.visibility = if(shown.isEmpty()) View.GONE else View.VISIBLE
@@ -457,23 +505,28 @@ class MainActivity : Activity() {
         }
     }
     private fun selectedEntry() = shownEntries.getOrNull(list?.selectedItemPosition?.takeIf { it >= 0 } ?: lastListSelection)
-    private fun captureList(): ListState? = if (screen in listOf("browse", "episodes") && list != null)
-        ListState(listTitle, listSection, listFilters, screen, categories, items, search?.text.toString(), lastListSelection, gallery) else null
+    private fun captureList(): ListState? = if (screen in listOf("browse", "episodes", "continuing") && list != null)
+        ListState(listTitle, listSection, listFilters, screen, categories, items, search?.text.toString(), lastListSelection, gallery, libraryKind, favouriteKind, continuing) else null
     private fun restoreList(state: ListState) {
-        page(state.screen, if(state.gallery) "${state.title} · En français" else state.title); categories = state.categories; items = state.entries
+        page(state.screen, when { state.favouriteKind != null -> "Mes favoris"; state.continuing -> state.title; state.gallery -> "${state.title} · En français"; else -> state.title }); categories = state.categories; items = state.entries
+        libraryKind = state.libraryKind; favouriteKind = state.favouriteKind; continuing = state.continuing
+        if(continuing) items = continueEntries(libraryKind!!, state.section == "Adultes")
         buildList(state.title, state.section, state.filters, state.gallery); search?.setText(state.query); renderRows(state.section, state.selected)
     }
     private fun leavePlayer() {
+        val entry = current
         releasePlayer(); current = null
-        if(returnToGuide) openTvGuide() else playerOrigin?.let { restoreList(it) } ?: home()
+        if(mediaDetails?.entry?.key == entry?.key || entry?.kind == "episode" && mediaDetails?.entry?.id == entry.seriesId) renderMedia()
+        else if(returnToGuide) openTvGuide() else playerOrigin?.let { restoreList(it) } ?: home()
     }
     private fun entryMenu(entry: Entry) {
-        val options = mutableListOf(if(entry.kind == "series") "Voir les épisodes" else "Regarder", if(entry.key in store.favourites()) "Retirer des favoris" else "Ajouter aux favoris")
+        val options = mutableListOf(if(entry.kind in listOf("series", "vod")) "Voir la fiche" else "Regarder", if(entry.key in store.favourites()) "Retirer des favoris" else "Ajouter aux favoris")
         if(entry.kind == "live") options.add("Guide TV · cette chaîne")
+        if(entry.kind == "episode" && entry.seriesId.isNotEmpty()) options.add("Voir la série")
         AlertDialog.Builder(this).setTitle(entry.name).setItems(options.toTypedArray()) { _, which -> when(which) {
-            0 -> if(entry.kind == "series") episodes(entry) else play(entry)
+            0 -> openEntry(entry)
             1 -> changeFavourite(entry) { renderRows(listSection) }
-            2 -> openTvGuide(entry.id)
+            2 -> if(entry.kind == "episode") openMedia(WatchProgress(entry, 0, 0, false, 0).seriesEntry(), preferredEpisode = entry.id, preferredSeason = entry.season.toString()) else openTvGuide(entry.id)
         } }.setNegativeButton("Fermer", null).show()
     }
     private fun changeFavourite(entry: Entry, changed: () -> Unit) {
@@ -484,16 +537,88 @@ class MainActivity : Activity() {
         val options = listOf(Category("", "Toutes les catégories")) + categories
         AlertDialog.Builder(this).setTitle("Catégories du fournisseur").setItems(options.map { it.name }.toTypedArray()) { _, which -> browse(browseTitle, browseKind, if(browseSection == "Adultes") "Adultes" else "", options[which].id.ifEmpty { null }) }.setNegativeButton("Annuler", null).show()
     }
-    private fun episodes(series: Entry) {
-        seriesOrigin = captureList()
-        categories = emptyList()
-        page("episodes", series.name)
-        async("Chargement des épisodes…", { Xtream(store.account()!!).episodes(series) }) { entries -> items = entries; buildList(series.name, "", false) }
+    private fun progressLabels(): Map<String, String> {
+        val records = store.history()
+        val result = records.associate { it.entry.key to WatchHistory.badge(it) }.toMutableMap()
+        records.filter { it.entry.seriesId.isNotEmpty() }.distinctBy { it.entry.seriesId }.forEach {
+            result["series:${it.entry.seriesId}"] = "${if(it.completed) "Vu" else "En cours"} · S${it.entry.season} E${it.entry.episode}"
+        }
+        return result
     }
-    private fun releasePlayer() { retryTask?.let { main.removeCallbacks(it) }; retryTask = null; playerView?.player = null; player?.release(); player = null; playerView = null }
+    private fun continuingRecords(kind: String, adults: Boolean, sourceCategories: List<Category>): List<WatchProgress> {
+        val names = sourceCategories.associate { it.id to it.name }
+        return WatchHistory.continuing(store.history(), kind).filter {
+            it.entry.adult == adults && CatalogRules.isFrenchVod(names[it.entry.category].orEmpty(), if(kind == "series") it.entry.seriesName else it.entry.name)
+        }
+    }
+    private fun continueEntries(kind: String, adults: Boolean) = continuingRecords(kind, adults, continueOrigin?.categories.orEmpty())
+        .map { if(kind == "series") it.seriesEntry() else it.entry }
+    private fun continueWatching(kind: String, adults: Boolean) {
+        continueOrigin = captureList()
+        page("continuing", if(kind == "vod") "Continuer mes films" else "Continuer mes séries")
+        libraryKind = kind; continuing = true
+        categories = emptyList(); items = continueEntries(kind, adults)
+        buildList(if(kind == "vod") "Mes films en cours" else "Mes séries en cours", if(adults) "Adultes" else "", false, true)
+    }
+    private fun openEntry(entry: Entry) {
+        when(entry.kind) {
+            "vod", "series" -> openMedia(entry.copy(adult = entry.adult || listSection == "Adultes" || CatalogRules.isAdult(categories.firstOrNull { it.id == entry.category }?.name.orEmpty(), entry.name)))
+            "episode" -> {
+                val progress = store.history().firstOrNull { it.entry.key == entry.key }
+                if(progress?.resumable == true) AlertDialog.Builder(this).setTitle(entry.name).setItems(arrayOf("Continuer à ${WatchHistory.stamp(progress.positionMs)}", "Recommencer")) { _, which -> play(entry, if(which == 0) progress.positionMs else 0) }.setNegativeButton("Retour", null).show()
+                else play(entry)
+            }
+            else -> play(entry)
+        }
+    }
+    private fun openMedia(entry: Entry, origin: ListState? = captureList(), preferredSeason: String? = null, preferredEpisode: String? = null) {
+        detailOrigin = origin; playerOrigin = null; returnToGuide = false
+        mediaDetails = null; mediaScreen = null; mediaSeason = preferredSeason; mediaEpisode = preferredEpisode
+        page("details", if(entry.kind == "series") "Série · Saisons et épisodes" else "Film")
+        async("Chargement de la fiche…", {
+            runCatching { Xtream(store.account()!!).details(entry) }.getOrElse { MediaDetails(entry, unavailable = true) }
+        }) { details -> mediaDetails = details; renderMedia() }
+    }
+    private fun renderMedia() {
+        val details = mediaDetails ?: return
+        page("details", if(details.entry.kind == "series") "Série · Saisons et épisodes" else "Film")
+        mediaScreen = MediaScreen(this, details, store, posters, mediaSeason, mediaEpisode,
+            { entry, restart ->
+                mediaSeason = mediaScreen?.seasonId; mediaEpisode = entry.id
+                val position = if(restart) 0 else store.history().firstOrNull { it.entry.key == entry.key }?.takeIf { it.resumable }?.positionMs ?: 0
+                play(entry, position)
+            }, { entry, changed -> changeFavourite(entry, changed) },
+            { openMedia(details.entry, detailOrigin, mediaScreen?.seasonId, mediaScreen?.selectedEpisodeId) }, { leaveDetails() })
+        root.addView(mediaScreen!!.view, LinearLayout.LayoutParams(-1, 0, 1f))
+    }
+    private fun leaveDetails() {
+        val origin = detailOrigin
+        mediaScreen = null; mediaDetails = null; detailOrigin = null
+        if(origin != null) restoreList(origin) else home()
+    }
+    private fun saveProgress(ended: Boolean = false) {
+        val entry = current?.takeIf { it.kind in listOf("vod", "episode") } ?: return
+        val p = player ?: return
+        if(!playbackStarted) return
+        val previous = store.history().firstOrNull { it.entry.key == entry.key }
+        val duration = p.duration.takeIf { it > 0 } ?: previous?.durationMs ?: 0
+        val position = p.currentPosition.coerceAtLeast(0).let { if(duration > 0) it.coerceAtMost(duration) else it }
+        val episodes = mediaDetails?.takeIf { it.entry.kind == "series" && it.entry.id == entry.seriesId }?.episodes
+        val next = if(episodes != null) episodes.dropWhile { it.entry.key != entry.key }.drop(1).firstOrNull()?.entry else previous?.next
+        store.remember(WatchProgress(entry, position, duration, WatchHistory.completed(position, duration, ended || p.playbackState == Player.STATE_ENDED), System.currentTimeMillis(), next))
+    }
+    private fun releasePlayer() {
+        saveProgress(); main.removeCallbacks(progressTick)
+        playbackEndDialog?.dismiss(); playbackEndDialog = null
+        retryTask?.let { main.removeCallbacks(it) }; retryTask = null; playerView?.player = null; player?.release(); player = null; playerView = null
+    }
     private fun play(entry: Entry, position: Long = 0L) {
         captureList()?.let { playerOrigin = it }
-        releasePlayer(); current = entry; playbackPosition = position; audioRestored = false; retries = 0
+        releasePlayer(); current = entry; playbackPosition = position; playbackStarted = false; audioRestored = false; retries = 0
+        if(entry.kind == "episode") {
+            mediaSeason = mediaDetails?.seasons?.firstOrNull { season -> season.episodes.any { it.entry.key == entry.key } }?.id
+            mediaEpisode = entry.id
+        }
         page("player", entry.name)
         root.removeAllViews(); root.setPadding(0, 0, 0, 0)
         val stage = FrameLayout(this)
@@ -509,9 +634,9 @@ class MainActivity : Activity() {
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(8), dp(8), dp(8), dp(8)); background = shape(Color.argb(210, 25, 19, 31)) }
         val favouriteIndex = 2
         fun favouriteLabel() = if(entry.key in store.favourites()) "★ Favori" else "☆ Favori"
-        val playbackActions = mutableListOf<Pair<String, () -> Unit>>("Son" to { audioMenu() }, "Détails" to { streamInfo() }, favouriteLabel() to {
+        val playbackActions = mutableListOf<Pair<String, () -> Unit>>("Son" to { audioMenu() }, "Sous-titres" to { subtitleMenu() }, favouriteLabel() to {
             changeFavourite(entry) { (row.getChildAt(favouriteIndex) as? Button)?.text = favouriteLabel() }
-        }, "Réessayer" to { retryTask?.let { main.removeCallbacks(it) }; retries = 0; player?.prepare(); player?.play() })
+        }, "Plus" to { playbackSettings() })
         if(entry.kind == "live") playbackActions.add("Guide TV" to { openTvGuide(entry.id) })
         playbackActions.add("Retour" to { leavePlayer() })
         playbackActions.forEachIndexed { index, (t, f) -> row.addView(button(t, f).apply {
@@ -540,9 +665,29 @@ class MainActivity : Activity() {
         val factory = DefaultMediaSourceFactory(DefaultHttpDataSource.Factory().setUserAgent("VickTv/${BuildConfig.VERSION_NAME}").setConnectTimeoutMs(15000).setReadTimeoutMs(20000).setAllowCrossProtocolRedirects(false))
         val p = ExoPlayer.Builder(this).setMediaSourceFactory(factory).build(); player = p; video.player = p
         p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setPreferredAudioLanguage("fr").setMaxAudioChannelCount(if(audioMode() == "stereo") 2 else Int.MAX_VALUE).build()
+        var endHandled = false
         p.addListener(object : Player.Listener {
             override fun onTracksChanged(tracks: Tracks) { restoreAudio(tracks) }
-            override fun onPlaybackStateChanged(state: Int) { if(state == Player.STATE_READY) retries = 0 }
+            override fun onPlaybackStateChanged(state: Int) {
+                if(player !== p) return
+                if(state == Player.STATE_READY) { retries = 0; playbackStarted = true; saveProgress() }
+                if(state == Player.STATE_ENDED && entry.kind != "live" && !endHandled) {
+                    endHandled = true; saveProgress(true)
+                    main.post { if(player === p && screen == "player") {
+                        if(entry.kind == "vod") leavePlayer()
+                        else {
+                            val next = store.history().firstOrNull { it.entry.key == entry.key }?.next
+                            val dialog = AlertDialog.Builder(this@MainActivity).setTitle("Épisode terminé")
+                                .setMessage(next?.let { "À suivre : ${it.name}" } ?: "Tu peux revenir à la liste pour choisir la suite.")
+                                .setNegativeButton("Retour aux épisodes") { _, _ -> leavePlayer() }
+                            if(next != null) dialog.setPositiveButton("Épisode suivant") { _, _ -> play(next) }
+                            playbackEndDialog = dialog.show()
+                        }
+                    } }
+                }
+            }
+            override fun onIsPlayingChanged(isPlaying: Boolean) { if(!isPlaying && player === p) saveProgress() }
+            override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) { if(player === p) saveProgress() }
             override fun onPlayerError(error: PlaybackException) {
                 if (screen != "player" || player !== p) return
                 if (retries < 3 && PlaybackErrors.shouldRetry(PlaybackErrors.httpStatus(error))) {
@@ -553,6 +698,7 @@ class MainActivity : Activity() {
         })
         val url = Xtream(store.account()!!).stream(entry, useHls)
         p.setMediaItem(MediaItem.fromUri(url)); if(entry.kind != "live") p.seekTo(position); p.prepare(); p.play(); video.requestFocus()
+        main.postDelayed(progressTick, 5000)
     }
     private fun playbackError(entry: Entry, hls: Boolean, error: PlaybackException) {
         val status = PlaybackErrors.httpStatus(error)
@@ -588,10 +734,12 @@ class MainActivity : Activity() {
         chosen?.let { p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setOverrideForType(TrackSelectionOverride(it.first.mediaTrackGroup, it.second)).build() }
     }
     private fun playbackSettings() {
-        AlertDialog.Builder(this).setTitle("Lecture").setItems(arrayOf("Audio / Son", "Sous-titres", "Vitesse")) { _, which ->
+        AlertDialog.Builder(this).setTitle("Lecture").setItems(arrayOf("Son", "Sous-titres", "Vitesse", "Détails du flux", "Réessayer")) { _, which ->
             when(which) {
                 0 -> audioMenu()
                 1 -> subtitleMenu()
+                3 -> streamInfo()
+                4 -> { retryTask?.let { main.removeCallbacks(it) }; retries = 0; player?.prepare(); player?.play() }
                 2 -> {
                     val speeds = floatArrayOf(.5f, .75f, 1f, 1.25f, 1.5f, 2f)
                     AlertDialog.Builder(this).setTitle("Vitesse de lecture").setSingleChoiceItems(
