@@ -6,7 +6,13 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.7.0
+## Version 0.7.1
+
+**Moins de boutons, plus de place aux chaînes.** Le guide retire Ajouter/Favori et Maintenant de son en-tête. La barre Options / Favoris disparaît des listes de chaînes et d’épisodes, y compris Adultes et leurs recherches. Ces actions restent accessibles avec Menu sur la télécommande; un appui long sur OK garde aussi l’ajout/retrait de favori dans les listes.
+
+![Guide allégé — données fictives de test](docs/images/guide-vicktv-071.png)
+
+![Liste sans barre Options / Favoris — données fictives de test](docs/images/liste-chaines-vicktv-071.png)
 
 **Films et séries : de la pochette à la soirée, sans se perdre.** Une sélection ouvre maintenant une fiche : grande affiche, titre, résumé et renseignements fournis (année, durée, genre, distribution). Les champs absents ne sont pas inventés; un film peut toujours démarrer si sa fiche ne répond pas.
 
@@ -18,7 +24,7 @@ Les séries ont un bouton **Saison**, une liste d’épisodes numérotés et des
 
 Le catalogue Films/Séries reste **en français, de toutes origines**, sans filtre de langue à choisir. Recherche contextualisée, bouton Effacer et pochettes de remplacement sont conservés. Les renseignements et le classement dépendent du fournisseur.
 
-L’accueil garde Télé, Films, Séries et Mes favoris; Sports et Adultes sont sous Plus. Le guide garde Favoris en premier, Maintenant et son retour au menu avec Retour. Les marges TV restent de 5 %, ou 8 % dans Réglages → Image coupée sur les bords. Les petits mots restent dans une carte non bloquante.
+L’accueil garde Télé, Films, Séries et Mes favoris; Sports et Adultes sont sous Plus. Le guide garde Favoris en premier et son retour au menu avec Retour. Les marges TV restent de 5 %, ou 8 % dans Réglages → Image coupée sur les bords. Les petits mots restent dans une carte non bloquante.
 
 **Installer par-dessus la version actuelle, sans désinstaller.** Le paquet et la signature sont identiques. Les comptes, favoris, préférences et 50 petits mots en rotation restent conservés. L’historique local garde les 200 derniers films/épisodes par compte; il ne se synchronise pas entre les TV. Les versions antérieures à 0.7.0 ne sauvegardaient pas les positions.
 
@@ -34,7 +40,7 @@ L’accueil garde Télé, Films, Séries et Mes favoris; Sports et Adultes sont 
 2. **OK** regarde la chaîne si l’émission est en cours. Sur une émission à venir, OK ouvre les détails et propose de regarder la chaîne **en direct**.
 3. Après la lecture, **Retour** retrouve sa place dans le guide. Dans la grille, **Retour** rejoint les onglets du haut; **↓** retrouve la chaîne sélectionnée. Un autre **Retour**, depuis les onglets, ramène à l’accueil.
 
-Pour garder une chaîne : **☆ Ajouter**, dans l’en-tête du guide, ou **Menu → Ajouter aux favoris**. **★ Favori** indique qu’elle est déjà gardée. **★ Favoris** ne montre ensuite que ces chaînes. Le bouton **Maintenant** rejoint l’horaire courant. Menu donne aussi accès à **Favoris / Québec / Toutes** et à la recherche, depuis n’importe quelle ligne. **? Aide** explique les commandes dans l’application.
+Pour garder une chaîne : **Menu → Ajouter aux favoris**. Une étoile près du nom indique qu’elle est déjà gardée. **★ Favoris** ne montre ensuite que ces chaînes. **Menu → Revenir à maintenant** rejoint l’horaire courant. Menu donne aussi accès à **Favoris / Québec / Toutes** et à la recherche, depuis n’importe quelle ligne. **? Aide** explique les commandes dans l’application.
 
 **Rechercher** trouve un nom ou un numéro dans la sélection actuelle. Choisir **Toutes**, puis **Rechercher → Tout effacer** pour repartir de toutes les chaînes. **Catégories** reprend les groupes du fournisseur. À la première ouverture, le guide sélectionne toujours ★ Favoris. Si la liste est vide, choisir Toutes, puis ajouter une chaîne avec Menu. Les retours conservent la sélection précédente; ouvrir le guide depuis une chaîne montre cette chaîne dans Toutes.
 

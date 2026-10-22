@@ -67,7 +67,6 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     private val title: TextView
     private val description: TextView
     private val clock: TextView
-    private val favouriteButton: Button
     private val categoryButton: Button
     private val searchButton: Button
     private val loading = LinearLayout(activity)
@@ -108,10 +107,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         view.orientation = LinearLayout.VERTICAL; view.setBackgroundColor(bg); TvSafeArea.apply(view, activity, store.prefs.getBoolean("wide_safe_area", false))
         val top = row(42)
         top.addView(text(27f, accent).apply { setText(R.string.guide_title); setTypeface(null, Typeface.BOLD) }, LinearLayout.LayoutParams(0, -1, 1f))
-        favouriteButton = button("☆ Favori") { toggleFavourite() }
-        top.addView(favouriteButton, LinearLayout.LayoutParams(dp(130), -1).apply { rightMargin = dp(12); bottomMargin = dp(3) })
         clock = text(14f, muted).apply { text = date.format(Date()) }; top.addView(clock)
-        top.addView(button("Maintenant") { grid.now(); grid.requestFocus() }, LinearLayout.LayoutParams(dp(130), -1).apply { leftMargin = dp(12); bottomMargin = dp(3) })
         val tools = row(46)
         listOf("★ Favoris", "Québec", "Toutes", "Adultes").forEach { label ->
             val b = button(label) { filter = label; category = ""; applyFilters(); grid.requestFocus() }
@@ -159,7 +155,6 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         for (i in 0 until tools.childCount) tools.getChildAt(i).nextFocusDownId = grid.id
         for (i in 0 until top.childCount) top.getChildAt(i).nextFocusDownId = grid.id
         grid.nextFocusUpId = filters.getValue("★ Favoris").id
-        favouriteButton.nextFocusDownId = grid.id
         grid.nextFocusDownId = grid.id
         updateClock()
     }
@@ -222,7 +217,6 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         grid.visibility = if(value) View.INVISIBLE else View.VISIBLE
         loading.visibility = if(value) View.VISIBLE else View.GONE
         if(value) {
-            favouriteButton.isEnabled = false
             heading.text = filter
             title.setText(R.string.guide_loading); description.setText(R.string.guide_loading_hint)
             if(wasFocused) loading.requestFocus()
@@ -293,8 +287,6 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         if(filtering) return
         val entry = grid.selectedEntry(); val p = grid.selectedProgramme(); val now = System.currentTimeMillis()
         heading.text = if(account == null) "DÉMO · EXEMPLE D’HORAIRE" else entry?.let { "${if(isFavourite(it)) "★ " else ""}${it.name}  ·  ${categoryName(it)}" } ?: "GUIDE TV"
-        favouriteButton.text = if(entry != null && isFavourite(entry)) "★ Favori" else "☆ Ajouter"
-        favouriteButton.isEnabled = entry != null
         title.text = p?.title ?: if (entry == null) "Aucune chaîne dans cette sélection" else entry.name
         description.text = p?.let {
             "${time.format(Date(it.start))} – ${time.format(Date(it.end))} · ${if(it.isNow(now)) "En cours" else if(it.start > now) "À venir" else "Terminé"} · ${it.description.ifBlank { "OK pour les détails" }}"
