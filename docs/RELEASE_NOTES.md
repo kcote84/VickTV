@@ -8,4 +8,4 @@
 
 Le mini-guide, les fiches, saisons et reprises restent disponibles. Les positions sont locales à chaque compte; Films/Séries conserve le français automatique. Cette correction concerne la présentation des favoris.
 
-Validation : tests automatisés, lint, APK signé et essais de mise à jour/navigation/lecture sur émulateur avec fournisseur fictif. Aucun Fire Stick ni flux Edge testé pour cette version.
+Validation : tests automatisés, lint, APK signé et essais de mise à jour et de navigation sur émulateur avec fournisseur fictif. Aucun Fire Stick ni flux Edge testé pour cette version.
