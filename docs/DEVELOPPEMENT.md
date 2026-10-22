@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version distribuée : **0.5.2**, `versionCode = 11`, Retour vers les onglets du guide (section 25). Version précédente : **0.5.1**, `versionCode = 10`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
+Dernière mise à jour : **21 octobre 2026**. Version distribuée : **0.6.0**, `versionCode = 12`, première étape de simplification et favoris protégés (section 27). Version précédente : **0.5.2**, `versionCode = 11`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -654,3 +654,9 @@ Parcours réellement exercés sur émulateur API 35, sans compte Edge : installa
 Essai de volume : 40 000 titres supplémentaires sur le fournisseur fictif; Retour pendant le chargement reste à l’accueil après la réponse tardive. Le catalogue chargé demeure navigable, les titres anglais sont filtrés et la recherche 39998 retrouve le titre français attendu. L’assertion initiale du script a précédé la fin du filtrage asynchrone; l’état final a été vérifié à l’écran, puis le scénario repris avec attente appropriée. Ce test ne mesure pas la vitesse d’un Fire Stick ni d’Edge.
 
 APK testé et préparé : **6 986 699 octets**, SHA-256 `9b531f293373425c70b6eda381b30644e1b511357feec684e20851624859fbba`. Les 24 morceaux de distribution reconstruisent exactement cet APK; le manifeste code 12 pointe vers v0.6.0. Les copies temporaires de signature ont été retirées de qa; l’archive privée originale reste hors Git. Captures d’accueil et guide actualisées avec données fictives.
+
+Publication confirmée le 21 octobre 2026 : [PR 11](https://github.com/kcote84/VickTV/pull/11), commit de fusion `bf049c994e56dd9534aad067f6f9f953a02e32ae`. La [CI de la PR](https://github.com/kcote84/VickTV/actions/runs/39705048058) a réussi avant fusion; le [workflow de publication](https://github.com/kcote84/VickTV/actions/runs/39705294890) a réussi. [Release v0.6.0](https://github.com/kcote84/VickTV/releases/tag/v0.6.0) disponible.
+
+Vérification externe après publication : le manifeste latest est identique au manifeste local (code 12 / 0.6.0); l’APK téléchargé par le lien versionné et par le lien stable est identique, octet pour octet, à l’APK testé. SHA256SUMS et apksigner sur le téléchargement public confirment l’empreinte ci-dessus et le certificat initial. Aucun jeton GitHub requis. Le journal AndroidRuntime de la session d’essai ne contient pas d’exception fatale; fournisseur fictif et émulateur arrêtés après validation.
+
+Mise à jour depuis la version précédente : Réglages → Vérifier les mises à jour. Dans 0.6.0, le bouton s’appelle Mise à jour. Installer par-dessus, sans désinstaller, pour conserver compte, favoris, préférences et rotation des petits mots. [Téléchargement stable de l’APK](https://github.com/kcote84/VickTV/releases/latest/download/VickTV.apk).
