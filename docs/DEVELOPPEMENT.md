@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **21 octobre 2026**. Version distribuée : **0.7.0**, `versionCode = 13`, fiches films/séries, saisons et reprise persistante (section 28). Version précédente : **0.6.0**, `versionCode = 12`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
+Dernière mise à jour : **22 octobre 2026**. Version distribuée : **0.7.1**, `versionCode = 14`, guide et listes allégés, favoris et reprises conservés (section 29). Version précédente : **0.7.0**, `versionCode = 13`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -717,4 +717,8 @@ Le laboratoire avait encore une réserve de stockage empêchant l’installation
 
 Captures de l’APK testé avec données fictives : [guide](images/guide-vicktv-071.png), [liste](images/liste-chaines-vicktv-071.png), [recherche](images/recherche-chaines-vicktv-071.png). APK préparé : **7 015 035 octets**, SHA-256 `8142d50b32e41348a4773e088aa1f6d0561672b4fb22b0c0a9891c9ffba5d5cf`, certificat initial `6a09826ceee768d04367e205731a23a1b03a791c25b150c4cf232db2274d2e16`. Les 24 morceaux reconstruisent exactement l’APK testé; manifeste et SHA256SUMS cohérents. Copies temporaires de signature retirées, archive privée originale hors Git.
 
-Récupération : conserver signature et données et corriger avec un versionCode supérieur à 14 si nécessaire; ne pas désinstaller pour revenir à une ancienne version. Publication publique à confirmer ci-dessous.
+Récupération : conserver signature et données et corriger avec un versionCode supérieur à 14 si nécessaire; ne pas désinstaller pour revenir à une ancienne version.
+
+Publication confirmée le 22 octobre 2026 : [PR 13](https://github.com/kcote84/VickTV/pull/13), fusion `b276c9f9252483a2a04ecb8db22de7df2e221a23`, [CI réussie avant fusion](https://github.com/kcote84/VickTV/actions/runs/39762400854) et [workflow de publication réussi](https://github.com/kcote84/VickTV/actions/runs/39762699077). [Release v0.7.1](https://github.com/kcote84/VickTV/releases/tag/v0.7.1) disponible. Manifeste latest identique au manifeste local code 14; APK public versionné et lien stable identiques octet pour octet au fichier testé. SHA256SUMS et apksigner sur le téléchargement public confirment l’empreinte et le certificat initial ci-dessus. Aucun jeton GitHub nécessaire. Émulateur et fournisseur fictif arrêtés après les essais.
+
+Installation : **Réglages → Mise à jour**, installer par-dessus sans désinstaller pour conserver favoris, compte et positions. [Lien stable APK](https://github.com/kcote84/VickTV/releases/latest/download/VickTV.apk).
