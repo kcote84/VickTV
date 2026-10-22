@@ -100,6 +100,7 @@ class MainActivity : Activity() {
         when (screen) {
             "home" -> finish()
             "player" -> leavePlayer()
+            "guide" -> if(guideScreen?.handleBack() != true) { releasePlayer(); current = null; home() }
             "episodes" -> seriesOrigin?.let { restoreList(it) } ?: home()
             else -> { releasePlayer(); current = null; home() }
         }

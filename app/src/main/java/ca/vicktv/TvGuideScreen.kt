@@ -41,6 +41,8 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     private var filterTask: Future<*>? = null
     private var filterRequest = 0
     private var filtering = false
+    private var headerFocus: View? = null
+    private var keepHeaderFocus = false
     private var active = false
     private var generation = 0
     private var all = emptyList<Entry>()
@@ -90,10 +92,11 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         setPadding(dp(8), 0, dp(8), 0); setTextColor(Color.WHITE); background = shape(panel)
         defaultFocusHighlightEnabled = false
         setOnFocusChangeListener { _, focused ->
+            if(focused) headerFocus = this
             background = shape(if(focused) accent else panel, isSelected)
             setTextColor(if(focused) bg else Color.WHITE)
         }
-        setOnClickListener { action() }
+        setOnClickListener { keepHeaderFocus = false; action() }
     }
     private fun row(height: Int) = LinearLayout(activity).also { view.addView(it, LinearLayout.LayoutParams(-1, dp(height))) }
     private fun add(row: LinearLayout, button: Button, weight: Float = 1f) {
@@ -130,6 +133,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
         grid.onWindow = { updateClock() }
         grid.onOpen = { entry, programme -> open(entry, programme) }
         grid.onFavourite = { options() }
+        grid.setOnFocusChangeListener { _, focused -> if(focused) keepHeaderFocus = false }
         val content = FrameLayout(activity)
         content.addView(grid, FrameLayout.LayoutParams(-1, -1))
         loading.apply {
@@ -154,12 +158,20 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     }
     fun resume(channelId: String? = null) {
         active = true
+        keepHeaderFocus = false
         TvSafeArea.apply(view, activity, store.prefs.getBoolean("wide_safe_area", false))
         if (channelId != null) { focusId = channelId; filter = "Toutes"; category = ""; query = "" }
         if (all.isEmpty() || System.currentTimeMillis() - loadedAt > 300000) loadCatalogue()
         else { applyFilters(); grid.refresh(); loadVisible() }
         main.removeCallbacks(ticker); main.postDelayed(ticker, 60000)
-        grid.post { grid.requestFocus() }
+        grid.post { if(!keepHeaderFocus) grid.requestFocus() }
+    }
+    /** First Back focuses the toolbar without changing the selected channel or time window. */
+    fun handleBack(): Boolean {
+        if(!active || headerFocus?.hasFocus() == true) return false
+        keepHeaderFocus = true
+        val target = headerFocus ?: if(category.isNotEmpty()) categoryButton else filters.getValue(filter)
+        return target.requestFocus()
     }
     fun pause() {
         active = false; generation++; main.removeCallbacks(ticker)
@@ -231,7 +243,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
                     val restoreFocus = loading.hasFocus() || categoryButton.hasFocus() || searchButton.hasFocus() || filters.values.any { it.hasFocus() }
                     grid.setChannels(shown, focusId); focusId = null
                     showLoading(false); selection(); updateClock(); loadVisible()
-                    if(restoreFocus) grid.requestFocus()
+                    if(restoreFocus && !keepHeaderFocus) grid.requestFocus()
                 }.onFailure {
                     grid.setChannels(emptyList()); showLoading(false)
                     title.setText(R.string.guide_connection_failed); description.setText(R.string.guide_connection_retry)
@@ -326,7 +338,7 @@ class TvGuideScreen(private val activity: Activity, val account: Account?, priva
     }
     private fun help() {
         AlertDialog.Builder(activity).setTitle("Le guide en 3 gestes")
-            .setMessage("1. ↑ ↓ : choisis une chaîne.\n2. ← → : regarde ce qui joue plus tard.\n3. OK : regarde l’émission en cours ou ouvre les détails d’une émission à venir.\n\nMenu ouvre les options : favoris, recherche et retour à maintenant.\n\n★ Favoris est le premier onglet. Québec regroupe les chaînes québécoises; Toutes conserve le catalogue complet.\n\nRetour ramène à l’accueil. Après la lecture, Retour retrouve ta place dans le guide.\n\nL’horaire vient de ton fournisseur. Une chaîne reste accessible même sans horaire. Jusqu’à 12 h à venir, selon les données reçues.")
+            .setMessage("1. ↑ ↓ : choisis une chaîne.\n2. ← → : regarde ce qui joue plus tard.\n3. OK : regarde l’émission en cours ou ouvre les détails d’une émission à venir.\n\nMenu ouvre les options : favoris, recherche et retour à maintenant.\n\n★ Favoris est le premier onglet. Québec regroupe les chaînes québécoises; Toutes conserve le catalogue complet.\n\nRetour dans les chaînes rejoint les onglets du haut sans perdre ta place. ↓ retrouve la chaîne sélectionnée. Retour depuis les onglets ramène à l’accueil. Après la lecture, Retour retrouve ta place dans le guide.\n\nL’horaire vient de ton fournisseur. Une chaîne reste accessible même sans horaire. Jusqu’à 12 h à venir, selon les données reçues.")
             .setPositiveButton("C’est compris", null).show()
     }
     private fun demoCatalogue(): Pair<List<Category>, List<Entry>> {
