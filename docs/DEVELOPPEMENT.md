@@ -1,6 +1,6 @@
 # VickTV — Référence technique et suivi du projet
 
-Dernière mise à jour : **22 octobre 2026**. Version distribuée : **0.7.1**, `versionCode = 14`, guide et listes allégés, favoris et reprises conservés (section 29). Version précédente : **0.7.0**, `versionCode = 13`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
+Dernière mise à jour : **22 octobre 2026**. Version distribuée : **0.8.0**, `versionCode = 15`, mini-guide sur la vidéo et favoris en premier (section 30). Version précédente : **0.7.1**, `versionCode = 14`. Version initiale conservée : **0.1.0**, `versionCode = 1`. Les sections historiques décrivent les étapes successives; la dernière section fait foi pour l’état actuel.
 
 Ce document est le point d’entrée pour reprendre le travail avec Kev, un développeur ou une IA. Il décrit le comportement présent, les décisions prises et les validations restantes. Le code reste l’autorité sur le comportement exécuté; toute évolution significative doit être réconciliée ici.
 
@@ -753,3 +753,11 @@ Le labo utilise un flux HTTP MPEG-TS sans longueur de fichier, afin de distingue
 APK final préparé : **7 032 111 octets**, SHA-256 `acc467b0b9649a1ca4865e11dc2867699d47fd39732f270ff497d44028f16984`. Les 24 morceaux reconstruisent exactement cet APK et le manifeste indique 0.8.0 / code 15. Certificat initial `6a09826ceee768d04367e205731a23a1b03a791c25b150c4cf232db2274d2e16`; copies temporaires de signature retirées, archive privée originale conservée hors Git. Récupération : corriger avec un versionCode supérieur à 15, conserver signature et données, sans désinstaller.
 
 Vérification finale : APK installé extrait avec adb et comparé octet pour octet au fichier distribué ci-dessus; `apksigner verify` valide sa signature initiale et aapt confirme `ca.vicktv`, code 15 / 0.8.0, libellé VickTv et absence de mode débogable. Dernier contrôle sur ce fichier : favori d’origine présent, ouverture/fermeture sans relance, Favoris en premier et récupération d’une chaîne HTTP 403 dans le même lecteur. AndroidRuntime ne contient aucune exception fatale VickTv. [Capture du mini-guide](images/mini-guide-vicktv.png), avec vidéo et horaire fictifs.
+
+### Publication confirmée
+
+Publication le 22 octobre 2026 : [PR 14](https://github.com/kcote84/VickTV/pull/14), fusion `5663baaee3b67bc20cd29ed989dbd8a02c1143bb`. La [CI avant fusion](https://github.com/kcote84/VickTV/actions/runs/39768122538) et le [workflow de publication](https://github.com/kcote84/VickTV/actions/runs/39768421664) ont réussi. [Release v0.8.0](https://github.com/kcote84/VickTV/releases/tag/v0.8.0) disponible.
+
+Le manifeste latest est identique au manifeste local (code 15 / 0.8.0). Les APK téléchargés par le lien versionné et le lien stable sont identiques octet pour octet aux **7 032 111 octets** testés; SHA256SUMS et apksigner sur le téléchargement public confirment l’empreinte et le certificat initial ci-dessus. Aucun jeton GitHub nécessaire. Fournisseur fictif et émulateur arrêtés après les essais.
+
+Installation : **Réglages → Mise à jour**, installer par-dessus sans désinstaller pour conserver compte, favoris et positions. [Téléchargement stable de l’APK](https://github.com/kcote84/VickTV/releases/latest/download/VickTV.apk).
