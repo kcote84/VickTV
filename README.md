@@ -6,25 +6,23 @@ Un lecteur Xtream Codes personnel pour Fire TV, pensé pour Vicky : peu de menus
 
 Pour reprendre le travail : [référence technique, décisions et suivi](docs/DEVELOPPEMENT.md). Ce document central décrit l’architecture, l’état validé, les limites et les prochaines étapes.
 
-## Version 0.5.2
+## Version 0.6.0
 
-La version **0.5.2 (code 11)** permet de rejoindre les onglets du haut avec **Retour**, depuis n’importe quelle chaîne du guide. La chaîne, le défilement et l’heure restent à la même place; **↓** revient dans la grille. Depuis les onglets, **Retour** ramène à l’accueil.
+**Quatre grands choix : Télé, Films, Séries et Mes favoris.** Télé ouvre le guide, avec ★ Favoris en premier. Rechercher permet de choisir chaînes, films ou séries; Sports et Adultes restent accessibles sous Plus. Les petits mots s’affichent dans une carte à l’accueil, sans fenêtre à fermer.
 
-La roue rose et le filtrage en arrière-plan de 0.5.1 sont conservés. Les favoris et le compte restent présents lors d’une mise à jour sur place.
+Le guide garde le bas libre et propose **Maintenant** en haut. L’étoile **☆ Ajouter / ★ Favori** indique l’état de la chaîne sélectionnée. Chaque retrait propose **Annuler le retrait**, dans le guide, les listes et le lecteur. Retour dans les chaînes rejoint le menu du haut; Bas retrouve sa place; Retour depuis le menu ramène à l’accueil.
 
-[Aperçu de la transition de chargement](docs/images/guide-chargement.png).
+Les réglages courants présentent Son, Image coupée sur les bords, Mots d’amour et Mise à jour. Le cadre rose permet de choisir la marge normale (5 %) ou agrandie (8 %). Compte et format MPEG-TS/HLS sont dans Options avancées.
 
-La bordure de sécurité autour des boutons reste de **5 %**, ou **8 %** dans **Réglages → Bordure TV** pour une télé qui rogne davantage l’image.
+Le menu Son affiche les langues en clair; les codecs restent dans Détails. La narration n’est signalée que lorsque les métadonnées l’identifient. Une seule piste reçue est expliquée clairement : l’application ne peut pas retirer une narration déjà mélangée au son. L’évitement de l’audiodescription reste activé par défaut.
 
-Le guide commence par **★ Favoris**. Le raccourci **Québec** du guide et de l’accueil sélectionne les chaînes locales francophones reconnues; **Direct** et **Toutes** conservent le catalogue complet.
+**Les favoris et le compte sont conservés lors d’une mise à jour sur place.** Changer de compte demande confirmation et sauvegarde sa liste séparément; reconnecter l’ancien compte restaure ses favoris. Ne pas désinstaller pour mettre à jour : une désinstallation efface les données locales.
 
-**Films** et **Séries** affichent des galeries de pochettes avec recherche et favoris. Le catalogue est directement en français, de France, du Québec ou doublé, sans filtres à choisir. Les titres indiqués VOSTFR sont exclus. Le classement dépend des noms du fournisseur et ne vérifie pas les pistes audio de chaque œuvre. Une pochette absente garde un pictogramme et son titre.
+Films et Séries gardent leurs pochettes, en français de toutes origines, sans filtre linguistique à choisir. Le filtrage se fait en arrière-plan, avec un chargement visible et annulation des recherches dépassées. Le classement repose sur les noms du fournisseur; les titres VOSTFR sont exclus. Une affiche absente garde un pictogramme et son titre.
 
-Pendant la lecture, les commandes se superposent à l’image plein écran sans la réduire. Les réglages audio et les mises à jour restent dans **Réglages**. La narration intégrée à une unique piste fournie ne peut pas être retirée par l’application.
+Québec dans le guide sélectionne les chaînes locales francophones reconnues; Toutes conserve le catalogue complet. Adultes utilise les métadonnées du fournisseur et ne constitue pas un contrôle parental. Les commandes du lecteur se superposent à l’image plein écran.
 
-**Adultes 18+** reste disponible à l’accueil et dans le guide. Le regroupement utilise les métadonnées Xtream et ne constitue pas un contrôle parental.
-
-![Accueil avec bordure TV](docs/images/home-vicktv-simple.png)
+![Accueil simplifié](docs/images/home-vicktv-simple.png)
 
 ![Guide TV — données fictives de test](docs/images/guide-tv-simple.png)
 
@@ -32,11 +30,11 @@ Pendant la lecture, les commandes se superposent à l’image plein écran sans 
 
 ## Le guide, en trois gestes
 
-1. À l’accueil, choisir **Guide TV**. **↑ ↓** change de chaîne; **← →** parcourt les émissions et les heures suivantes.
+1. À l’accueil, choisir **Télé**. **↑ ↓** change de chaîne; **← →** parcourt les émissions et les heures suivantes.
 2. **OK** regarde la chaîne si l’émission est en cours. Sur une émission à venir, OK ouvre les détails et propose de regarder la chaîne **en direct**.
 3. Après la lecture, **Retour** retrouve sa place dans le guide. Dans la grille, **Retour** rejoint les onglets du haut; **↓** retrouve la chaîne sélectionnée. Un autre **Retour**, depuis les onglets, ramène à l’accueil.
 
-Pour garder une chaîne : **Menu → Ajouter aux favoris**. **★ Favoris** ne montre ensuite que ces chaînes. Menu donne aussi accès à **Favoris / Québec / Toutes**, à la recherche et à **Revenir à maintenant**, depuis n’importe quelle ligne. **? Aide** explique les commandes dans l’application.
+Pour garder une chaîne : **☆ Ajouter**, dans l’en-tête du guide, ou **Menu → Ajouter aux favoris**. **★ Favori** indique qu’elle est déjà gardée. **★ Favoris** ne montre ensuite que ces chaînes. Le bouton **Maintenant** rejoint l’horaire courant. Menu donne aussi accès à **Favoris / Québec / Toutes** et à la recherche, depuis n’importe quelle ligne. **? Aide** explique les commandes dans l’application.
 
 **Rechercher** trouve un nom ou un numéro dans la sélection actuelle. Choisir **Toutes**, puis **Rechercher → Tout effacer** pour repartir de toutes les chaînes. **Catégories** reprend les groupes du fournisseur. À la première ouverture, le guide sélectionne toujours ★ Favoris. Si la liste est vide, choisir Toutes, puis ajouter une chaîne avec Menu. Les retours conservent la sélection précédente; ouvrir le guide depuis une chaîne montre cette chaîne dans Toutes.
 
@@ -48,23 +46,23 @@ Sans compte, le guide montre un **horaire de démonstration fictif**, clairement
 2. Transférer l’APK sur le Fire Stick (par exemple avec un outil de transfert de fichiers) ou utiliser Downloader lorsque le lien de téléchargement est public.
 3. Autoriser cette source d’installation dans **Ma Fire TV → Options développeur → Installer des applications inconnues**. Le libellé varie selon Fire OS.
 4. Installer puis ouvrir VickTV. Le mode démo fonctionne sans compte.
-5. Dans **Réglages → Connecter mon compte Xtream**, entrer l’URL du serveur, l’utilisateur et le mot de passe. Refaire sur la deuxième TV avec son deuxième compte.
+5. Dans **Réglages → Connecter mon compte**, entrer l’URL du serveur, l’utilisateur et le mot de passe. Refaire sur la deuxième TV avec son deuxième compte.
 
 **Compatibilité :** Android 8+ / Fire OS 7+. Les Fire Stick sous Vega OS ne peuvent pas installer cet APK. Modèles exacts des deux appareils à confirmer avant validation.
 
 ## Navigation
 
 - Flèches : naviguer; OK : ouvrir ou regarder; Retour : revenir.
-- Accueil : Guide TV, Favoris, Direct, Films, Séries, Québec, Sports, Adultes 18+ et Réglages.
+- Accueil : Télé, Films, Séries, Mes favoris; Rechercher, Plus et Réglages. Sports et Adultes 18+ sont sous Plus.
 - Les regroupements Québec/Sports utilisent les noms des catégories et chaînes du fournisseur; ils peuvent être imparfaits. Le bouton **Catégories** dans le direct donne accès aux groupes originaux.
 - Appui long sur OK dans une liste : ajouter/retirer un favori.
-- Pendant la lecture : **Audio / Son** ou touche Menu de la télécommande pour choisir une piste.
-- **Infos** décrit le flux reçu, sans prétendre mesurer la sortie HDMI.
-- Le menu Réglages propose le direct MPEG-TS/HLS et la préférence pour une piste stéréo disponible.
+- Pendant la lecture : **Son** ou touche Menu de la télécommande pour choisir une piste.
+- **Détails** décrit le flux reçu, sans prétendre mesurer la sortie HDMI.
+- Réglages → Son propose la préférence stéréo/5.1; Options avancées contient le format MPEG-TS/HLS.
 
 ## Les petits mots
 
-50 messages français distincts, dans un ordre tournant conservé sur chaque appareil. Ils apparaissent au lancement et au retour dans l’app lorsque l’accueil est visible. Allumer uniquement le téléviseur ne garantit pas que Fire OS ouvre VickTV; aucun démarrage automatique du téléviseur n’est intercepté. Option désactivable dans Réglages.
+50 messages français distincts, dans un ordre tournant conservé sur chaque appareil. Ils apparaissent dans une carte non bloquante au lancement et au retour dans l’app lorsque l’accueil est visible. Allumer uniquement le téléviseur ne garantit pas que Fire OS ouvre VickTV; aucun démarrage automatique du téléviseur n’est intercepté. Option désactivable dans Réglages.
 
 ## Comptes et confidentialité
 
@@ -72,7 +70,7 @@ Chaque Fire Stick garde son propre compte Xtream, chiffré avec Android Keystore
 
 ## Mises à jour
 
-Dans **Réglages → Vérifier les mises à jour**, l’app lit `update.json` dans la dernière release stable de `kcote84/VickTV`, puis propose le téléchargement et l’installateur système. Validation SHA-256, nom du paquet, version et certificat avant ouverture de l’installateur. Garder la même clé de signature à chaque version.
+Dans **Réglages → Mise à jour**, l’app lit `update.json` dans la dernière release stable de `kcote84/VickTV`, puis propose le téléchargement et l’installateur système. Validation SHA-256, nom du paquet, version et certificat avant ouverture de l’installateur. Garder la même clé de signature à chaque version.
 
 **Le dépôt et les APK sont publics depuis le 21 octobre 2026.** Le téléchargement et l’accès au manifeste de mise à jour ne demandent donc pas de compte GitHub. Aucune clé GitHub n’est embarquée dans l’APK. L’installation et la mise à jour sur Fire Stick restent à valider sur les appareils réels.
 

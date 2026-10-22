@@ -30,6 +30,10 @@ class MainActivity : Activity() {
     private lateinit var store: Store
     private lateinit var root: LinearLayout
     private val work = Executors.newSingleThreadExecutor()
+    private val rowsWorker = Executors.newSingleThreadExecutor()
+    private var rowsTask: java.util.concurrent.Future<*>? = null
+    private var rowsRequest = 0
+    private var rowsLoading: View? = null
     private val posters = PosterLoader()
     private val main = Handler(Looper.getMainLooper())
     private var requestId = 0
@@ -40,6 +44,8 @@ class MainActivity : Activity() {
     private var playbackPosition = 0L
     private var stopped = false
     private var greetingPending = true
+    private var loveNote: String? = null
+    private var loveCard: TextView? = null
     private var audioRestored = false
     private var retries = 0
     private var retryTask: Runnable? = null
@@ -94,7 +100,7 @@ class MainActivity : Activity() {
         releasePlayer()
         super.onStop()
     }
-    override fun onDestroy() { requestId++; guideScreen?.close(); releasePlayer(); posters.close(); work.shutdownNow(); main.removeCallbacksAndMessages(null); super.onDestroy() }
+    override fun onDestroy() { requestId++; guideScreen?.close(); releasePlayer(); posters.close(); work.shutdownNow(); rowsWorker.shutdownNow(); main.removeCallbacksAndMessages(null); super.onDestroy() }
     @Deprecated("TV back navigation")
     override fun onBackPressed() {
         when (screen) {
@@ -102,6 +108,7 @@ class MainActivity : Activity() {
             "player" -> leavePlayer()
             "guide" -> if(guideScreen?.handleBack() != true) { releasePlayer(); current = null; home() }
             "episodes" -> seriesOrigin?.let { restoreList(it) } ?: home()
+            "sound", "safe", "advanced" -> settings()
             else -> { releasePlayer(); current = null; home() }
         }
     }
@@ -121,7 +128,7 @@ class MainActivity : Activity() {
         text = title; textSize = 16f; isAllCaps = false; setTextColor(Color.WHITE); gravity = Gravity.CENTER
         minHeight = dp(48); setPadding(dp(18), dp(8), dp(18), dp(8)); background = shape(panel)
         defaultFocusHighlightEnabled = false
-        setOnFocusChangeListener { _, focus -> background = shape(if (focus) accent else panel); setTextColor(if (focus) bg else Color.WHITE) }
+        setOnFocusChangeListener { _, focus -> background = shape(if (focus) accent else panel, if(focus) Color.WHITE else null); setTextColor(if (focus) bg else Color.WHITE) }
         setOnClickListener { action() }
     }
     private fun addButton(parent: LinearLayout, title: String, action: () -> Unit) = button(title, action).also {
@@ -130,6 +137,7 @@ class MainActivity : Activity() {
     private fun page(name: String, subtitle: String): LinearLayout {
         if (name != "guide") guideScreen?.pause()
         requestId++; busy = false; screen = name; list = null; search = null; gallery = false; posters.cancelPending()
+        rowsRequest++; rowsTask?.cancel(true); rowsLoading = null; shownEntries = emptyList()
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; TvSafeArea.apply(this, this@MainActivity, store.prefs.getBoolean("wide_safe_area", false)); setBackgroundColor(bg) }
         setContentView(root)
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
@@ -149,21 +157,27 @@ class MainActivity : Activity() {
             })
         }
         val primary = LinearLayout(this).apply { isBaselineAligned = false }
-        val guide = homeTile("Guide TV", R.drawable.home_guide, true) { openTvGuide() }
-        addTile(primary, guide, 2f)
-        addTile(primary, homeTile("Favoris", R.drawable.home_favourites) { if(store.account() == null) demo("Favoris") else favourites() })
-        addTile(primary, homeTile("Direct", R.drawable.home_live) { if(store.account() == null) demo("Toutes les chaînes") else browse("Toutes les chaînes", "live", "") })
-        root.addView(primary, LinearLayout.LayoutParams(-1, 0, 1.1f).apply { topMargin = dp(12); bottomMargin = dp(12) })
-        val catalogue = LinearLayout(this).apply { isBaselineAligned = false }
-        listOf("Films" to R.drawable.home_films, "Séries" to R.drawable.home_series,
-            "Québec" to R.drawable.home_french, "Sports" to R.drawable.home_sports).forEach { (title, icon) ->
-            addTile(catalogue, homeTile(title, icon) {
-                if(store.account() == null) demo(title) else browse(title, when(title) { "Films" -> "vod"; "Séries" -> "series"; else -> "live" }, if(title == "Québec") "Québec (direct)" else title)
+        val guide = homeTile("Télé", R.drawable.home_guide, true) { openTvGuide() }
+        addTile(primary, guide, 1.25f)
+        listOf("Films" to R.drawable.home_films, "Séries" to R.drawable.home_series).forEach { (title, icon) ->
+            addTile(primary, homeTile(title, icon) {
+                if(store.account() == null) demo(title) else browse(title, if(title == "Films") "vod" else "series", title)
             })
         }
-        root.addView(catalogue, LinearLayout.LayoutParams(-1, 0, 1f))
+        addTile(primary, homeTile("Mes favoris", R.drawable.home_favourites) { if(store.account() == null) demo("Favoris") else favourites() })
+        root.addView(primary, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(16); bottomMargin = dp(12) })
+        loveCard = label(loveNote ?: "♡  ${LoveNotes.at(store.prefs.getInt("love_index", 0))}", 16f, muted).apply {
+            maxLines = 2; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), dp(6), dp(16), dp(6)); background = shape(TvTheme.live)
+            visibility = if(store.prefs.getBoolean("love", true)) View.VISIBLE else View.GONE
+        }
+        root.addView(loveCard, LinearLayout.LayoutParams(-1, dp(58)))
         val footer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addTile(footer, button("Adultes 18+") { adults() })
+        addTile(footer, button("Rechercher") { searchHome() })
+        addTile(footer, button("Plus") {
+            AlertDialog.Builder(this).setTitle("Plus de choix").setItems(arrayOf("Sports", "Adultes 18+")) { _, which ->
+                if(which == 1) adults() else if(store.account() == null) demo("Sports") else browse("Sports", "live", "Sports")
+            }.setNegativeButton("Retour", null).show()
+        })
         addTile(footer, button("Réglages") { settings() })
         root.addView(footer, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(16) })
         guide.requestFocus()
@@ -188,7 +202,7 @@ class MainActivity : Activity() {
         }
         addView(caption, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
         setOnFocusChangeListener { _, focused ->
-            background = shape(if(focused) accent else panel, if(focused) null else TvTheme.live)
+            background = shape(if(focused) accent else panel, if(focused) Color.WHITE else TvTheme.live)
             caption.setTextColor(if(focused) bg else Color.WHITE); icon.setTint(if(focused) bg else accent)
         }
         background = shape(panel, TvTheme.live)
@@ -201,7 +215,7 @@ class MainActivity : Activity() {
                 browse("Adultes · ${listOf("Chaînes", "Films", "Séries")[choice]}", listOf("live", "vod", "series")[choice], "Adultes")
             }.setNegativeButton("Retour", null).show()
     }
-    private fun openTvGuide(channelId: String? = null) {
+    private fun openTvGuide(channelId: String? = null, searching: Boolean = false) {
         releasePlayer(); current = null
         val account = store.account()
         if (guideScreen == null || guideScreen?.account != account) {
@@ -214,11 +228,20 @@ class MainActivity : Activity() {
         (guide.view.parent as? ViewGroup)?.removeView(guide.view)
         root.addView(guide.view, LinearLayout.LayoutParams(-1, -1))
         guide.resume(channelId)
+        if(searching) guide.findChannel()
     }
     private fun love() {
         val index = store.prefs.getInt("love_index", 0)
         store.prefs.edit().putInt("love_index", (index + 1) % LoveNotes.messages.size).apply()
-        AlertDialog.Builder(this).setTitle("Un petit mot pour Vicky ♡").setMessage(LoveNotes.at(index)).setPositiveButton("Bonne soirée ♡", null).show()
+        loveNote = "♡  ${LoveNotes.at(index)}"
+        loveCard?.text = loveNote
+    }
+    private fun searchHome() {
+        AlertDialog.Builder(this).setTitle("Que veux-tu trouver ?").setItems(arrayOf("Une chaîne", "Un film", "Une série")) { _, which ->
+            if(which == 0) openTvGuide(searching = true)
+            else if(store.account() == null) demo(if(which == 1) "Films" else "Séries")
+            else browse(if(which == 1) "Films" else "Séries", if(which == 1) "vod" else "series", "", searching = true)
+        }.setNegativeButton("Retour", null).show()
     }
     private fun demo(section: String) {
         page("demo", "$section · Mode démo")
@@ -230,22 +253,58 @@ class MainActivity : Activity() {
     private fun settings() {
         page("settings", "Une fois réglé, on profite.")
         val scroll = ScrollView(this); val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }; scroll.addView(body); root.addView(scroll)
-        addButton(body, if (store.account() == null) "Connecter mon compte Xtream" else "Modifier mon compte Xtream") { login() }
+        body.addView(label("Le quotidien", 18f, accent))
+        if(store.account() == null) addButton(body, "Connecter mon compte") { login() }
+        addButton(body, "Son : ${audioModeLabel()}") { soundSettings() }
+        addButton(body, "Image coupée sur les bords ?") { safeAreaSettings() }
         addButton(body, "Mots d’amour : ${if(store.prefs.getBoolean("love", true)) "activés" else "désactivés"}") { store.prefs.edit().putBoolean("love", !store.prefs.getBoolean("love", true)).apply(); settings() }
-        addButton(body, "Bordure TV : ${if(store.prefs.getBoolean("wide_safe_area", false)) "grande (8 %)" else "normale (5 %)"}") { store.prefs.edit().putBoolean("wide_safe_area", !store.prefs.getBoolean("wide_safe_area", false)).apply(); settings() }
-        addButton(body, "Format du direct : ${if(store.prefs.getBoolean("hls", false)) "HLS" else "MPEG-TS"}") { store.prefs.edit().putBoolean("hls", !store.prefs.getBoolean("hls", false)).apply(); settings() }
-        addButton(body, "Audio : ${audioModeLabel()}") {
+        addButton(body, "Mise à jour · ${BuildConfig.VERSION_NAME}") { checkUpdate() }
+        if (pendingInstall != null) addButton(body, "Installer la mise à jour") { installUpdate() }
+        addButton(body, "Options avancées") { advancedSettings() }
+        addButton(body, "Retour") { home() }
+        body.addView(label("Ton compte et tes favoris sont conservés lors des mises à jour.", 14f, muted))
+    }
+    private fun safeAreaSettings() {
+        page("safe", "Tout doit rester à l’intérieur du cadre rose.")
+        val preview = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; background = shape(panel, accent)
+            setPadding(dp(20), dp(16), dp(20), dp(16))
+        }
+        root.addView(preview, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(8); bottomMargin = dp(12) })
+        preview.addView(label("Vois-tu les quatre côtés ?", 22f, accent))
+        preview.addView(label("Si un bord disparaît, choisis Plus de marge.", 16f, muted))
+        val wide = store.prefs.getBoolean("wide_safe_area", false)
+        addButton(preview, if(wide) "✓ Plus de marge" else "Plus de marge") {
+            store.prefs.edit().putBoolean("wide_safe_area", true).apply(); safeAreaSettings()
+        }
+        addButton(preview, if(!wide) "✓ Marge normale" else "Marge normale") {
+            store.prefs.edit().putBoolean("wide_safe_area", false).apply(); safeAreaSettings()
+        }
+        addButton(root, "Terminé") { settings() }
+    }
+    private fun soundSettings() {
+        page("sound", "Le son, à ton goût.")
+        addButton(root, "Sortie préférée : ${audioModeLabel()}") {
             AlertDialog.Builder(this).setTitle("Préférence audio").setItems(arrayOf("Automatique", "Stéréo", "Cinéma / 5.1")) { _, which ->
-                store.prefs.edit().putString("audio_mode", listOf("auto", "stereo", "surround")[which]).apply(); settings()
+                store.prefs.edit().putString("audio_mode", listOf("auto", "stereo", "surround")[which]).apply(); soundSettings()
             }.show()
         }
-        addButton(body, "Éviter l’audiodescription : ${if(store.prefs.getBoolean("avoid_description", true)) "oui" else "non"}") {
-            store.prefs.edit().putBoolean("avoid_description", !store.prefs.getBoolean("avoid_description", true)).apply(); settings()
+        addButton(root, "Éviter la narration : ${if(store.prefs.getBoolean("avoid_description", true)) "oui" else "non"}") {
+            store.prefs.edit().putBoolean("avoid_description", !store.prefs.getBoolean("avoid_description", true)).apply(); soundSettings()
         }
-        addButton(body, "Vérifier les mises à jour · ${BuildConfig.VERSION_NAME}") { checkUpdate() }
-        if (pendingInstall != null) addButton(body, "Installer la mise à jour téléchargée") { installUpdate() }
-        addButton(body, "Retour") { home() }
-        body.addView(label("Stéréo et 5.1 préfèrent une piste disponible; la sortie dépend de ta télé et du Fire Stick.\nL’audiodescription est évitée par défaut si une piste normale est disponible.\nLes comptes restent sur ce Fire Stick. Android 8 / Fire OS 7 ou supérieur.", 14f, muted))
+        root.addView(label("Ces choix utilisent les pistes reçues. Une narration déjà mélangée au son ne peut pas être retirée.\nLa sortie stéréo ou 5.1 dépend aussi de ta télé et du Fire Stick.", 16f, muted))
+        addButton(root, "Retour") { settings() }
+    }
+    private fun advancedSettings() {
+        page("advanced", "Options avancées")
+        addButton(root, if(store.account() == null) "Connecter mon compte" else "Modifier mon compte") { login() }
+        addButton(root, "Format du direct : ${if(store.prefs.getBoolean("hls", false)) "HLS" else "MPEG-TS"}") {
+            AlertDialog.Builder(this).setTitle("Format du direct").setSingleChoiceItems(arrayOf("MPEG-TS", "HLS"), if(store.prefs.getBoolean("hls", false)) 1 else 0) { dialog, which ->
+                store.prefs.edit().putBoolean("hls", which == 1).apply(); dialog.dismiss(); advancedSettings()
+            }.setNegativeButton("Retour", null).show()
+        }
+        root.addView(label("Le format dépend du fournisseur. Garde MPEG-TS si HLS ne fonctionne pas.\nUn compte différent garde sa propre liste de favoris sur cet appareil.", 16f, muted))
+        addButton(root, "Retour") { settings() }
     }
     private fun audioMode() = store.prefs.getString("audio_mode", if(store.prefs.getBoolean("stereo", false)) "stereo" else "auto") ?: "auto"
     private fun audioModeLabel() = when(audioMode()) { "stereo" -> "Stéréo"; "surround" -> "Cinéma / 5.1"; else -> "Automatique" }
@@ -270,11 +329,18 @@ class MainActivity : Activity() {
             if (!valid || user.text.isBlank() || password.text.isEmpty()) { message("Connexion", "Entre l’adresse du serveur (sans player_api.php), ton utilisateur et ton mot de passe."); return@addButton }
             val a = Account(url, user.text.toString().trim(), password.text.toString())
             val connect = {
-                async("Connexion en cours…", { Xtream(a).authenticate(); val old = store.account(); if(old?.server != a.server || old.username != a.username) store.clearFavourites(); store.save(a) }) { toast("Connexion réussie"); home() }
+                async("Connexion en cours…", { Xtream(a).authenticate(); store.save(a) }) { toast("Connexion réussie"); home() }
+            }
+            val confirmedConnect = {
+                if(account != null && FavouriteProfiles.identity(account.server, account.username) != FavouriteProfiles.identity(a.server, a.username))
+                    AlertDialog.Builder(this).setTitle("Changer de compte ?")
+                        .setMessage("Tes favoris actuels resteront sauvegardés pour ce compte. Le nouveau compte aura sa propre liste; reconnecte l’ancien pour retrouver ses favoris.")
+                        .setNegativeButton("Annuler", null).setPositiveButton("Changer de compte") { _, _ -> connect() }.show()
+                else connect()
             }
             if (url.startsWith("http://")) AlertDialog.Builder(this).setTitle("Serveur sans HTTPS")
                 .setMessage("Cette adresse transmet tes identifiants sans chiffrement réseau. Utilise HTTPS si ton fournisseur le permet.")
-                .setNegativeButton("Modifier", null).setPositiveButton("Utiliser cette adresse") { _, _ -> connect() }.show() else connect()
+                .setNegativeButton("Modifier", null).setPositiveButton("Utiliser cette adresse") { _, _ -> confirmedConnect() }.show() else confirmedConnect()
         }
         addButton(form, "Retour") { home() }
         form.addView(label("Tes identifiants sont chiffrés sur cet appareil. Ils ne sont jamais envoyés à GitHub.", 12f, muted))
@@ -285,15 +351,15 @@ class MainActivity : Activity() {
         items = store.favouriteEntries(); categories = emptyList()
         buildList("Favoris", "Favoris", false)
     }
-    private fun browse(title: String, kind: String, section: String, category: String? = null) {
+    private fun browse(title: String, kind: String, section: String, category: String? = null, searching: Boolean = false) {
         browseTitle = title; browseKind = kind; browseSection = section; browseCategory = category
         page("browse", if(kind in listOf("vod", "series")) "$title · En français" else "$title · Choisis une catégorie ou cherche un titre.")
         async("Chargement du catalogue…", {
             val api = Xtream(store.account() ?: error("Connecte ton compte."))
             api.categories(kind) to api.entries(kind, category)
-        }) { (cats, entries) -> categories = cats; items = entries; buildList(title, section, true, kind in listOf("vod", "series")) }
+        }) { (cats, entries) -> categories = cats; items = entries; buildList(title, section, true, kind in listOf("vod", "series"), !searching); if(searching) search?.requestFocus() }
     }
-    private fun buildList(title: String, section: String, filters: Boolean, covers: Boolean = false) {
+    private fun buildList(title: String, section: String, filters: Boolean, covers: Boolean = false, focusResults: Boolean = true) {
         listTitle = title; listSection = section; listFilters = filters; gallery = covers
         if(!gallery) root.addView(label(title, 25f))
         val controls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
@@ -321,43 +387,73 @@ class MainActivity : Activity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) { lastListSelection = position }
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
-        root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
+        val content = FrameLayout(this)
+        content.addView(list, FrameLayout.LayoutParams(-1, -1))
         val empty = label("", 18f, muted).apply { gravity = Gravity.CENTER; isFocusable = true; visibility = View.GONE }
-        root.addView(empty, LinearLayout.LayoutParams(-1, 0, 1f)); list?.emptyView = empty
-        renderRows(section)
-        if(shownEntries.isEmpty()) empty.requestFocus() else list?.requestFocus()
+        content.addView(empty, FrameLayout.LayoutParams(-1, -1)); list?.emptyView = empty
+        rowsLoading = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; isFocusable = true
+            addView(ProgressBar(this@MainActivity).apply { indeterminateTintList = android.content.res.ColorStateList.valueOf(accent) }, LinearLayout.LayoutParams(dp(48), dp(48)))
+            addView(label("Un instant…", 16f, muted))
+        }
+        content.addView(rowsLoading, FrameLayout.LayoutParams(-1, -1))
+        root.addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
+        renderRows(section, focus = focusResults)
     }
-    private fun renderRows(section: String) {
-        val query = CatalogRules.normalize(search?.text.toString())
+    private fun renderRows(section: String, selection: Int = lastListSelection, focus: Boolean = true) {
+        val query = search?.text.toString()
         val names = categories.associate { it.id to it.name }
         val favourites = store.favourites()
-        val shown = items.filter { (section != "Favoris" || it.key in favourites) && CatalogRules.matches(section, names[it.category] ?: "", it.name, it.adult) &&
-            (!gallery || CatalogRules.isFrenchVod(names[it.category] ?: "", it.name)) && CatalogRules.normalize(it.name).contains(query) }
-        shownEntries = shown
-        (list?.emptyView as? TextView)?.text = if(section == "Favoris") "Tes favoris apparaîtront ici. Utilise Options / Favoris sur un titre." else if(gallery) "Aucun titre en français dans cette sélection. Essaie une autre recherche." else "Aucun résultat. Essaie une autre recherche ou catégorie."
-        if(gallery) {
-            posters.cancelPending()
-            val inset = TvSafeArea.insets(this, store.prefs.getBoolean("wide_safe_area", false))
-            val columns = (list as GridView).numColumns
-            val width = (resources.displayMetrics.widthPixels - 2 * inset.horizontal - (columns - 1) * dp(12)) / columns
-            list?.adapter = PosterAdapter(this, shown, favourites, posters, ((width - dp(8)) * 1.5f).toInt())
-        } else {
-            val labels = shown.map { "${if(it.key in favourites) "★  " else ""}${it.name}\n${names[it.category] ?: when(it.kind) { "live" -> "Chaîne en direct"; "vod" -> "Film"; "series" -> "Série"; else -> "Épisode" }}" }
-            list?.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, labels) {
-                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View = (super.getView(position, convertView, parent) as TextView).apply {
-                    textSize = 18f; setTextColor(Color.WHITE); setPadding(dp(16), dp(8), dp(16), dp(8)); minHeight = dp(68)
-                    background = android.graphics.drawable.StateListDrawable().apply {
-                        addState(intArrayOf(android.R.attr.state_selected), shape(TvTheme.selected, accent))
-                        addState(intArrayOf(android.R.attr.state_pressed), shape(TvTheme.selected, accent))
-                        addState(intArrayOf(), shape(panel))
+        val source = items; val covers = gallery; val target = list ?: return
+        val token = ++rowsRequest; val pageToken = requestId
+        val hadFocus = target.hasFocus()
+        rowsTask?.cancel(true); rowsLoading?.visibility = View.VISIBLE
+        target.visibility = View.INVISIBLE; target.emptyView?.visibility = View.GONE
+        if(focus && hadFocus) rowsLoading?.requestFocus()
+        val focusAtStart = currentFocus
+        rowsTask = rowsWorker.submit {
+            val result = runCatching {
+                val selected = CatalogueSelection.select(source, names, favourites, section, covers, query)
+                val labels = if(covers) emptyList() else selected.map { "${if(it.key in favourites) "★  " else ""}${it.name}\n${names[it.category] ?: when(it.kind) { "live" -> "Chaîne en direct"; "vod" -> "Film"; "series" -> "Série"; else -> "Épisode" }}" }
+                selected to labels
+            }
+            if(Thread.currentThread().isInterrupted) return@submit
+            main.post {
+                if(isFinishing || isDestroyed || pageToken != requestId || token != rowsRequest || list !== target) return@post
+                rowsTask = null; rowsLoading?.visibility = View.GONE
+                val (shown, labels) = result.getOrElse { message("Catalogue", "La liste n’a pas pu être affichée. Réessaie ta recherche."); emptyList<Entry>() to emptyList<String>() }
+                shownEntries = shown
+                (list?.emptyView as? TextView)?.text = if(section == "Favoris") "Tes favoris apparaîtront ici. Utilise Options / Favoris sur un titre." else if(gallery) "Aucun titre en français dans cette sélection. Essaie une autre recherche." else "Aucun résultat. Essaie une autre recherche ou catégorie."
+                if(gallery) {
+                    posters.cancelPending()
+                    val inset = TvSafeArea.insets(this, store.prefs.getBoolean("wide_safe_area", false))
+                    val columns = (list as GridView).numColumns
+                    val width = (resources.displayMetrics.widthPixels - 2 * inset.horizontal - (columns - 1) * dp(12)) / columns
+                    list?.adapter = PosterAdapter(this, shown, favourites, posters, ((width - dp(8)) * 1.5f).toInt())
+                } else {
+                    list?.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, labels) {
+                        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View = (super.getView(position, convertView, parent) as TextView).apply {
+                            textSize = 18f; setTextColor(Color.WHITE); setPadding(dp(16), dp(8), dp(16), dp(8)); minHeight = dp(68)
+                            background = android.graphics.drawable.StateListDrawable().apply {
+                                addState(intArrayOf(android.R.attr.state_selected), shape(TvTheme.selected, accent))
+                                addState(intArrayOf(android.R.attr.state_pressed), shape(TvTheme.selected, accent))
+                                addState(intArrayOf(), shape(panel))
+                            }
+                        }
                     }
                 }
+                if(shown.isEmpty()) { list?.setOnItemClickListener(null); list?.setOnItemLongClickListener(null) }
+                else {
+                    list?.setOnItemClickListener { _, _, index, _ -> lastListSelection = index; val entry = shown[index]; if(entry.kind == "series") episodes(entry) else play(entry) }
+                    list?.setOnItemLongClickListener { _, _, index, _ -> changeFavourite(shown[index]) { renderRows(section, index) }; true }
+                }
+                target.visibility = if(shown.isEmpty()) View.GONE else View.VISIBLE
+                target.emptyView?.visibility = if(shown.isEmpty()) View.VISIBLE else View.GONE
+                lastListSelection = selection.coerceIn(0, (shown.size - 1).coerceAtLeast(0)); target.setSelection(lastListSelection)
+                if(focus && (currentFocus == null || currentFocus === focusAtStart || currentFocus === rowsLoading)) {
+                    if(shown.isEmpty()) target.emptyView?.requestFocus() else target.requestFocus()
+                }
             }
-        }
-        if(shown.isEmpty()) { list?.setOnItemClickListener(null); list?.setOnItemLongClickListener(null) }
-        else {
-            list?.setOnItemClickListener { _, _, index, _ -> lastListSelection = index; val entry = shown[index]; if(entry.kind == "series") episodes(entry) else play(entry) }
-            list?.setOnItemLongClickListener { _, _, index, _ -> toast(if(store.toggle(shown[index])) "Ajouté aux favoris" else "Retiré des favoris"); renderRows(section); list?.setSelection(index); true }
         }
     }
     private fun selectedEntry() = shownEntries.getOrNull(list?.selectedItemPosition?.takeIf { it >= 0 } ?: lastListSelection)
@@ -365,9 +461,7 @@ class MainActivity : Activity() {
         ListState(listTitle, listSection, listFilters, screen, categories, items, search?.text.toString(), lastListSelection, gallery) else null
     private fun restoreList(state: ListState) {
         page(state.screen, if(state.gallery) "${state.title} · En français" else state.title); categories = state.categories; items = state.entries
-        buildList(state.title, state.section, state.filters, state.gallery); search?.setText(state.query); renderRows(state.section)
-        lastListSelection = state.selected.coerceAtMost((shownEntries.size - 1).coerceAtLeast(0))
-        list?.setSelection(lastListSelection); list?.requestFocus()
+        buildList(state.title, state.section, state.filters, state.gallery); search?.setText(state.query); renderRows(state.section, state.selected)
     }
     private fun leavePlayer() {
         releasePlayer(); current = null
@@ -378,9 +472,13 @@ class MainActivity : Activity() {
         if(entry.kind == "live") options.add("Guide TV · cette chaîne")
         AlertDialog.Builder(this).setTitle(entry.name).setItems(options.toTypedArray()) { _, which -> when(which) {
             0 -> if(entry.kind == "series") episodes(entry) else play(entry)
-            1 -> { val selection = shownEntries.indexOfFirst { it.key == entry.key }.coerceAtLeast(0); toast(if(store.toggle(entry)) "Ajouté aux favoris" else "Retiré des favoris"); renderRows(listSection); list?.setSelection(selection.coerceAtMost((shownEntries.size - 1).coerceAtLeast(0))) }
+            1 -> changeFavourite(entry) { renderRows(listSection) }
             2 -> openTvGuide(entry.id)
         } }.setNegativeButton("Fermer", null).show()
+    }
+    private fun changeFavourite(entry: Entry, changed: () -> Unit) {
+        val added = store.toggle(entry); changed()
+        FavouriteFeedback.show(this, entry, added) { store.setFavourite(entry, true); changed() }
     }
     private fun chooseCategory() {
         val options = listOf(Category("", "Toutes les catégories")) + categories
@@ -409,13 +507,17 @@ class MainActivity : Activity() {
         }
         stage.addView(heading, FrameLayout.LayoutParams(-1, dp(48), Gravity.TOP).apply { leftMargin = inset.horizontal; rightMargin = inset.horizontal; topMargin = inset.vertical })
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(8), dp(8), dp(8), dp(8)); background = shape(Color.argb(210, 25, 19, 31)) }
-        val playbackActions = mutableListOf<Pair<String, () -> Unit>>("Audio / Son" to { audioMenu() }, "Infos" to { streamInfo() }, "★ Favori" to { toast(if(store.toggle(entry)) "Ajouté aux favoris" else "Retiré des favoris") }, "Reprendre" to { retryTask?.let { main.removeCallbacks(it) }; retries = 0; player?.prepare(); player?.play() })
+        val favouriteIndex = 2
+        fun favouriteLabel() = if(entry.key in store.favourites()) "★ Favori" else "☆ Favori"
+        val playbackActions = mutableListOf<Pair<String, () -> Unit>>("Son" to { audioMenu() }, "Détails" to { streamInfo() }, favouriteLabel() to {
+            changeFavourite(entry) { (row.getChildAt(favouriteIndex) as? Button)?.text = favouriteLabel() }
+        }, "Réessayer" to { retryTask?.let { main.removeCallbacks(it) }; retries = 0; player?.prepare(); player?.play() })
         if(entry.kind == "live") playbackActions.add("Guide TV" to { openTvGuide(entry.id) })
         playbackActions.add("Retour" to { leavePlayer() })
         playbackActions.forEachIndexed { index, (t, f) -> row.addView(button(t, f).apply {
             id = View.generateViewId(); textSize = 14f; setPadding(dp(6), 0, dp(6), 0); nextFocusUpId = video.id
             setOnFocusChangeListener { _, focus ->
-                background = shape(if(focus) accent else panel); setTextColor(if(focus) bg else Color.WHITE)
+                background = shape(if(focus) accent else panel, if(focus) Color.WHITE else null); setTextColor(if(focus) bg else Color.WHITE)
                 video.controllerShowTimeoutMs = if(focus) 0 else 5000
                 if(focus) video.showController()
             }
@@ -461,12 +563,14 @@ class MainActivity : Activity() {
             append("\nCode : ${error.errorCodeName}")
             if(hls) append("\n\nPasser en MPEG-TS change le format pour toutes les chaînes en direct.")
         }
-        val dialog = AlertDialog.Builder(this).setTitle("Lecture interrompue").setMessage(details)
-            .setNegativeButton("Fermer", null)
-        if(hls) dialog.setPositiveButton("Passer en MPEG-TS") { _, _ ->
-            store.prefs.edit().putBoolean("hls", false).apply()
-            play(entry)
-        }
+        val dialog = AlertDialog.Builder(this).setTitle(if(entry.kind == "live") "Cette chaîne ne répond pas" else "Lecture interrompue").setMessage("${entry.name} est indisponible pour le moment. Tu peux réessayer ou revenir choisir autre chose. Tes favoris sont conservés.")
+            .setNegativeButton("Autre choix") { _, _ -> leavePlayer() }
+            .setNeutralButton("Détails") { _, _ ->
+                val info = AlertDialog.Builder(this).setTitle("Détails de lecture").setMessage(details).setNegativeButton("Fermer", null)
+                if(hls) info.setPositiveButton("Passer en MPEG-TS") { _, _ -> store.prefs.edit().putBoolean("hls", false).apply(); play(entry) }
+                info.show()
+            }
+            .setPositiveButton("Réessayer") { _, _ -> val position = player?.currentPosition ?: playbackPosition; play(entry, position) }
         dialog.show()
     }
     private fun fingerprint(f: Format): String = listOf(f.language ?: "", f.label ?: "", f.sampleMimeType ?: "", f.channelCount.toString(), f.roleFlags.toString()).joinToString("|")
@@ -516,17 +620,21 @@ class MainActivity : Activity() {
         val p = player ?: return
         val options = p.currentTracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }.flatMap { g -> (0 until g.length).map { g to it } }
         if(options.isEmpty()) { message("Audio", "Aucune piste détectée pour le moment. Attends le démarrage de la chaîne."); return }
-        val titles = options.map { (g,i) -> val f = g.getTrackFormat(i); "${if(g.isTrackSelected(i)) "✓ " else ""}${f.label ?: f.language ?: "Piste ${i+1}"} · ${f.channelCount.takeIf { it > 0 } ?: "?"} canaux · ${f.sampleMimeType ?: "audio"}${if(f.roleFlags and C.ROLE_FLAG_DESCRIBES_VIDEO != 0 || AudioRules.isDescription(f.label)) " · Description" else ""}${if(!g.isTrackSupported(i)) " · non prise en charge" else ""}" }
-        AlertDialog.Builder(this).setTitle("Choisir le son").setItems(titles.toTypedArray()) { _, which ->
+        val titles = options.mapIndexed { number, (g,i) -> val f = g.getTrackFormat(i)
+            "${if(g.isTrackSelected(i)) "✓ " else ""}${AudioRules.title(f.language, f.label, f.roleFlags and C.ROLE_FLAG_DESCRIBES_VIDEO != 0 || AudioRules.isDescription(f.label), number)}${if(!g.isTrackSupported(i)) " · indisponible" else ""}"
+        }
+        val dialog = AlertDialog.Builder(this).setTitle("Choisir le son")
+        if(options.size == 1) dialog.setCustomTitle(label("Choisir le son\n\nUne seule piste reçue. Aucune autre piste à choisir; une narration mélangée au son ne peut pas être retirée.", 16f).apply { setPadding(dp(24), dp(20), dp(24), dp(12)) })
+        dialog.setItems(titles.toTypedArray()) { _, which ->
             val (g,i) = options[which]
             if(!g.isTrackSupported(i)) { toast("Ce format n’est pas pris en charge par cet appareil."); return@setItems }
             store.prefs.edit().putString("audio:${current!!.key}", fingerprint(g.getTrackFormat(i))).apply()
             p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setOverrideForType(TrackSelectionOverride(g.mediaTrackGroup, i)).build()
-        }.setNeutralButton("Choix automatique") { _, _ ->
+        }.setNeutralButton("Automatique") { _, _ ->
             store.prefs.edit().remove("audio:${current!!.key}").apply()
             p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().clearOverridesOfType(C.TRACK_TYPE_AUDIO).build()
             audioRestored = false; restoreAudio(p.currentTracks)
-        }.setNegativeButton("Fermer", null).show()
+        }.setNegativeButton("Détails") { _, _ -> streamInfo() }.show()
     }
     private fun streamInfo() {
         val p = player ?: return
@@ -572,11 +680,14 @@ class MainActivity : Activity() {
                         error is java.net.SocketTimeoutException -> "Le serveur met trop de temps à répondre. Réessaie."
                         error is java.net.UnknownHostException -> "Adresse introuvable. Vérifie le serveur et la connexion Internet."
                         error is org.json.JSONException -> "Réponse du serveur non reconnue. Vérifie l’adresse Xtream."
-                        error is java.io.IOException -> "Connexion impossible. Vérifie Internet et le serveur. Pour une mise à jour, vérifie qu’une release GitHub existe."
-                        else -> error.message?.takeIf { !it.contains("http") && !it.contains("password") } ?: "L’opération n’a pas pu être terminée."
+                        error is java.io.IOException -> if(screen == "settings") "La mise à jour n’a pas pu être récupérée. Vérifie Internet et réessaie dans un moment." else "Le fournisseur ne répond pas. Vérifie Internet ou réessaie dans un moment. Tes favoris sont conservés."
+                        else -> "L’opération n’a pas pu être terminée. Réessaie dans un moment."
                     }
-                    message("VickTv", text)
-                    if(screen == "browse" || screen == "episodes") addButton(root, "Retour à l’accueil") { home() }
+                    AlertDialog.Builder(this).setTitle("Connexion interrompue").setMessage(text)
+                        .setPositiveButton("Réessayer") { _, _ -> async(status, task, success) }
+                        .setNegativeButton(if(screen in listOf("browse", "episodes")) "Accueil" else "Fermer") { _, _ ->
+                            if(screen in listOf("browse", "episodes")) home()
+                        }.show()
                 }
             }
         }
