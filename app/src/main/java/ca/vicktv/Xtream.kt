@@ -57,7 +57,8 @@ object CatalogRules {
 }
 
 data class Category(val id: String, val name: String)
-data class Entry(val id: String, val name: String, val category: String, val kind: String, val extension: String = "ts", val number: Int = 0, val adult: Boolean = false, val poster: String = "") {
+data class Entry(val id: String, val name: String, val category: String, val kind: String, val extension: String = "ts", val number: Int = 0, val adult: Boolean = false, val poster: String = "",
+    val seriesId: String = "", val seriesName: String = "", val season: Int = 0, val episode: Int = 0, val seriesPoster: String = "") {
     val key get() = "$kind:$id"
 }
 class Xtream(private val account: Account) {
@@ -83,14 +84,11 @@ class Xtream(private val account: Account) {
         return (0 until a.length()).map { CatalogParser.entry(a.getJSONObject(it), kind, root) }.filter { it.id.matches(Regex("\\d+")) }
     }
     fun episodes(series: Entry): List<Entry> {
-        val all = JSONObject(api("get_series_info", "series_id" to series.id)).optJSONObject("episodes") ?: return emptyList()
-        return all.keys().asSequence().toList().sortedBy { it.toIntOrNull() ?: 0 }.flatMap { season ->
-            val a = all.optJSONArray(season) ?: JSONArray()
-            (0 until a.length()).map { a.getJSONObject(it) }.sortedBy { it.optInt("episode_num") }.map {
-                Entry(it.optString("id"), "S$season · ${it.optString("title", "Épisode ${it.optInt("episode_num")}")}", series.category, "episode", CatalogRules.safeExtension(it.optString("container_extension"), "mp4"), poster = ArtworkRules.url(it.optJSONObject("info")?.optString("movie_image").orEmpty(), root).ifBlank { series.poster })
-            }
-        }.filter { it.id.matches(Regex("\\d+")) }
+        return details(series).episodes.map { it.entry }
     }
+    fun details(entry: Entry): MediaDetails = MediaDetailsParser.parse(JSONObject(api(
+        if(entry.kind == "series") "get_series_info" else "get_vod_info",
+        (if(entry.kind == "series") "series_id" else "vod_id") to entry.id)), entry, root)
     @Volatile private var zoneLoaded = false
     private var serverZone: java.time.ZoneId? = null
     @Synchronized private fun zone(): java.time.ZoneId? {
