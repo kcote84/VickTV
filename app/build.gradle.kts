@@ -6,8 +6,8 @@ android {
         applicationId = "ca.vicktv"
         minSdk = 26
         targetSdk = 35
-        versionCode = 14
-        versionName = "0.7.1"
+        versionCode = 15
+        versionName = "0.8.0"
         buildConfigField("String", "UPDATE_REPOSITORY", "\"kcote84/VickTV\"")
     }
     buildFeatures { buildConfig = true }
