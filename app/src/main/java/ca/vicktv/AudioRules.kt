@@ -4,6 +4,20 @@ data class AudioChoice(val fingerprint: String, val language: String?, val label
 
 /** Choose only among supported tracks. Never prefer a described track when a regular one exists. */
 object AudioRules {
+    fun title(language: String?, label: String?, described: Boolean, index: Int): String {
+        val lang = language?.lowercase()?.substringBefore('-')?.substringBefore('_')
+        val name = when(lang) {
+            "fr", "fra", "fre" -> "Français"
+            "en", "eng" -> "Anglais"
+            "es", "spa" -> "Espagnol"
+            null, "", "und", "zxx" -> "Piste ${index + 1} · langue non précisée"
+            else -> java.util.Locale.forLanguageTag(lang).getDisplayLanguage(java.util.Locale.CANADA_FRENCH)
+                .takeIf { it.isNotBlank() && it != lang }?.replaceFirstChar { it.titlecase() } ?: "Piste ${index + 1} · $lang"
+        }
+        // Absence of an AD flag is not proof that narration has not been mixed into the sound.
+        return name + (if(described) " · avec narration" else "") +
+            if(!label.isNullOrBlank() && !isDescription(label) && label.length <= 32 && label != language) " · $label" else ""
+    }
     fun isDescription(label: String?): Boolean = Regex(
         "(^|[^a-z])(ad|audio.?description|audiodescription|videodescription|description|descriptive|visually impaired|malvoyants?)([^a-z]|$)"
     ).containsMatchIn(CatalogRules.normalize(label.orEmpty()))

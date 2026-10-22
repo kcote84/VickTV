@@ -27,7 +27,16 @@ class Store(context: Context) {
         val raw = JSONObject().put("server", account.server).put("username", account.username).put("password", account.password).toString()
         val c = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
         val enc = Base64.encodeToString(c.iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(c.doFinal(raw.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
-        prefs.edit().putString("account", enc).apply()
+        val edit = prefs.edit().putString("account", enc)
+        val old = account()
+        if(old != null) {
+            val selected = FavouriteProfiles.switch(prefs.getString("favourite_profiles", "{}")!!,
+                FavouriteProfiles.identity(old.server, old.username), FavouriteProfiles.identity(account.server, account.username),
+                favourites(), prefs.getString("favourite_details", "{}")!!)
+            edit.putString("favourite_profiles", selected.archive).putStringSet("favourites", selected.keys)
+                .putString("favourite_details", selected.details)
+        }
+        edit.apply()
     }
     fun account(): Account? = runCatching {
         val parts = (prefs.getString("account", null) ?: return null).split(":")
@@ -42,10 +51,11 @@ class Store(context: Context) {
         val all = JSONObject(prefs.getString("favourite_details", "{}")!!)
         favourites().mapNotNull { id -> all.optJSONObject(id)?.let { Entry(it.getString("id"), it.getString("name"), it.getString("category"), it.getString("kind"), it.getString("extension"), it.optInt("number"), it.optBoolean("adult"), it.optString("poster")) } }.sortedBy { it.name }
     }.getOrDefault(emptyList())
-    fun toggle(entry: Entry): Boolean {
+    fun toggle(entry: Entry): Boolean = setFavourite(entry, entry.key !in favourites())
+    fun setFavourite(entry: Entry, wanted: Boolean): Boolean {
         val values = favourites().toMutableSet()
         val details = JSONObject(prefs.getString("favourite_details", "{}")!!)
-        val added = if (values.remove(entry.key)) { details.remove(entry.key); false } else {
+        val added = if (!wanted) { values.remove(entry.key); details.remove(entry.key); false } else {
             values.add(entry.key)
             details.put(entry.key, JSONObject().put("id", entry.id).put("name", entry.name).put("category", entry.category).put("kind", entry.kind).put("extension", entry.extension).put("number", entry.number).put("adult", entry.adult).put("poster", entry.poster))
             true
